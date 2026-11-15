@@ -285,7 +285,7 @@ export default async function HomePage() {
 
   const zaloPhone = settings.zalo_phone || process.env.NEXT_PUBLIC_ZALO_PHONE || '0764894250'
   const zaloLink = settings.zalo_link || `https://zalo.me/${zaloPhone}`
-  const shopName = settings.shop_name || 'OpenLay'
+  const shopName = settings.shop_name || 'AI GIÁ SỈ'
 
   return (
     <main className="relative">

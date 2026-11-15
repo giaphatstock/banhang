@@ -238,7 +238,7 @@ export function SettingsManager({ initialSettings, initialAdminUsers = [] }: Set
                 required
                 value={formData.shop_name}
                 onChange={(e) => handleChange('shop_name', e.target.value)}
-                placeholder="OpenLay"
+                placeholder="AI GIÁ SỈ"
                 className="w-full px-3.5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-violet-500"
               />
             </div>
@@ -252,7 +252,7 @@ export function SettingsManager({ initialSettings, initialAdminUsers = [] }: Set
                 required
                 value={formData.contact_email}
                 onChange={(e) => handleChange('contact_email', e.target.value)}
-                placeholder="contact@openlay.vn"
+                placeholder="contact@aigiasi.vn"
                 className="w-full px-3.5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-violet-500"
               />
             </div>

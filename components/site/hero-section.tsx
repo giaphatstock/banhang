@@ -165,10 +165,10 @@ export function HeroSection({ zaloPhone, zaloLink }: HeroSectionProps) {
                 className="text-2xl sm:text-3xl font-extrabold gradient-text"
                 style={{ fontFamily: "'Space Grotesk', sans-serif" }}
               >
-                24/7
+                Zalo
               </div>
               <div className="text-xs sm:text-sm text-slate-400 mt-1 font-medium">
-                Hỗ trợ Zalo
+                Liên hệ hỗ trợ Zalo
               </div>
             </div>
           </div>

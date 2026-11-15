@@ -193,7 +193,7 @@ export function Footer({ settings }: FooterProps) {
           <p>© {currentYear} {shopName}. Mọi quyền được bảo lưu.</p>
           <div className="flex items-center gap-2 text-slate-400">
             <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            <span>Cam kết tài khoản chính hãng — Bảo hành uy tín 24/7.</span>
+            <span>Cam kết tài khoản chính hãng — Hỗ trợ tận tâm qua Zalo.</span>
           </div>
         </div>
       </div>
