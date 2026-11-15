@@ -1,3 +1,4 @@
+import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { AdminSidebar } from '@/components/admin/admin-sidebar'
 
@@ -11,20 +12,26 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode
 }) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const headersList = await headers()
+  let userEmail = headersList.get('x-user-email')
+
+  if (!userEmail) {
+    const supabase = await createClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    userEmail = user?.email ?? null
+  }
 
   // Nếu chưa đăng nhập hoặc đang ở trang login, chỉ render children không có sidebar
-  if (!user) {
+  if (!userEmail) {
     return <>{children}</>
   }
 
   return (
     <div className="min-h-screen bg-[#0A0A0F] text-slate-100 flex flex-col md:flex-row">
       {/* Sidebar Navigation */}
-      <AdminSidebar userEmail={user.email ?? ''} />
+      <AdminSidebar userEmail={userEmail} />
 
       {/* Main Content Area */}
       <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 overflow-y-auto">
