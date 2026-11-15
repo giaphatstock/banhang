@@ -45,7 +45,7 @@ const reasons = [
 
 export function WhyUs() {
   return (
-    <section className="py-20">
+    <section id="tai-sao-chon-chung-toi" className="py-20">
       <div className="container mx-auto px-4">
         {/* Header */}
         <motion.div

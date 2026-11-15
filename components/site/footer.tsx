@@ -52,6 +52,7 @@ export function Footer({ settings }: FooterProps) {
               {[
                 { href: '/#san-pham', label: 'Sản phẩm' },
                 { href: '/lien-he', label: 'Liên hệ' },
+                { href: '/admin', label: 'Quản trị viên (Admin)' },
               ].map((link) => (
                 <li key={link.href}>
                   <Link
