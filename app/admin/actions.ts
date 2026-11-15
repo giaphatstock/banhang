@@ -10,7 +10,8 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { productSchema, type ProductFormData } from '@/lib/validations/product'
 import { categorySchema, type CategoryFormData } from '@/lib/validations/category'
 import { settingsSchema, type SettingsFormData } from '@/lib/validations/settings'
-import type { CustomerStatus } from '@/lib/types'
+import { orderSchema } from '@/lib/validations/order'
+import type { CustomerStatus, OrderFormData, OrderStatus } from '@/lib/types'
 
 // ------------------------------------------------------------
 // AUTH ACTIONS
@@ -294,6 +295,82 @@ export async function updateSettings(data: SettingsFormData) {
   revalidatePath('/')
   revalidatePath('/lien-he')
   revalidatePath('/admin/settings')
+  return { success: true }
+}
+
+// ------------------------------------------------------------
+// ORDER & WARRANTY ACTIONS (Kích hoạt bảo hành & Lịch sử bán)
+// ------------------------------------------------------------
+
+export async function createOrder(data: OrderFormData) {
+  const parsed = orderSchema.safeParse(data)
+  if (!parsed.success) {
+    return { error: parsed.error.issues?.[0]?.message || 'Dữ liệu không hợp lệ.' }
+  }
+
+  const supabase = await createAdminClient()
+  const { data: inserted, error } = await supabase
+    .from('orders')
+    .insert([parsed.data])
+    .select()
+    .single()
+
+  if (error) {
+    return { error: 'Không thể tạo đơn hàng: ' + error.message }
+  }
+
+  revalidatePath('/admin')
+  revalidatePath('/admin/orders')
+  return { success: true, order: inserted }
+}
+
+export async function updateOrder(id: string, data: Partial<OrderFormData>) {
+  const parsed = orderSchema.partial().safeParse(data)
+  if (!parsed.success) {
+    return { error: parsed.error.issues?.[0]?.message || 'Dữ liệu không hợp lệ.' }
+  }
+
+  const supabase = await createAdminClient()
+  const { error } = await supabase
+    .from('orders')
+    .update({ ...parsed.data, updated_at: new Date().toISOString() })
+    .eq('id', id)
+
+  if (error) {
+    return { error: 'Không thể cập nhật đơn hàng: ' + error.message }
+  }
+
+  revalidatePath('/admin')
+  revalidatePath('/admin/orders')
+  return { success: true }
+}
+
+export async function updateOrderStatus(id: string, status: OrderStatus) {
+  const supabase = await createAdminClient()
+  const { error } = await supabase
+    .from('orders')
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq('id', id)
+
+  if (error) {
+    return { error: 'Không thể đổi trạng thái đơn hàng: ' + error.message }
+  }
+
+  revalidatePath('/admin')
+  revalidatePath('/admin/orders')
+  return { success: true }
+}
+
+export async function deleteOrder(id: string) {
+  const supabase = await createAdminClient()
+  const { error } = await supabase.from('orders').delete().eq('id', id)
+
+  if (error) {
+    return { error: 'Không thể xóa đơn hàng: ' + error.message }
+  }
+
+  revalidatePath('/admin')
+  revalidatePath('/admin/orders')
   return { success: true }
 }
 

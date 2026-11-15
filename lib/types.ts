@@ -99,3 +99,41 @@ export interface AdminUser {
   note: string | null
   created_at: string
 }
+
+// ============================================================
+// Orders & Warranty Types (Quản lý bán hàng & Bảo hành)
+// ============================================================
+export type OrderStatus = 'active' | 'expired' | 'refunded'
+
+export interface Order {
+  id: string
+  customer_name: string
+  customer_contact?: string | null
+  product_id?: string | null
+  product_name: string
+  price: number
+  bill_image?: string | null
+  attachment_image?: string | null
+  account_note?: string | null
+  purchase_date: string // YYYY-MM-DD
+  warranty_duration?: string | null
+  status: OrderStatus
+  created_at: string
+  updated_at: string
+  products?: Pick<Product, 'id' | 'name' | 'price' | 'warranty' | 'duration'> | null
+}
+
+export interface OrderFormData {
+  customer_name: string
+  customer_contact?: string | null
+  product_id?: string | null
+  product_name: string
+  price: number
+  bill_image?: string | null
+  attachment_image?: string | null
+  account_note?: string | null
+  purchase_date: string
+  warranty_duration?: string | null
+  status?: OrderStatus
+}
+

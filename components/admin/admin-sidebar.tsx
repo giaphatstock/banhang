@@ -18,6 +18,7 @@ import {
   Menu,
   X,
   ShieldAlert,
+  ShieldCheck,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { logoutAdmin } from '@/app/admin/actions'
@@ -32,6 +33,7 @@ export function AdminSidebar({ userEmail }: AdminSidebarProps) {
 
   const navLinks = [
     { href: '/admin', label: 'Tổng quan', icon: LayoutDashboard },
+    { href: '/admin/orders', label: 'Đơn hàng & Bảo hành', icon: ShieldCheck },
     { href: '/admin/products', label: 'Sản phẩm', icon: Package },
     { href: '/admin/categories', label: 'Danh mục', icon: Layers },
     { href: '/admin/customers', label: 'Khách hàng', icon: Users },
