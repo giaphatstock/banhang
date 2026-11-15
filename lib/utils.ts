@@ -137,3 +137,123 @@ export function getStatusLabel(status: string): string {
       return status
   }
 }
+
+// ============================================================
+// XỬ LÝ LỊCH & BẢO HÀNH CHÍNH XÁC (28/29/30/31 ngày)
+// ============================================================
+
+/**
+ * Tính ngày hết hạn bảo hành theo lịch chuẩn quốc tế và Việt Nam.
+ * Tự động kiểm tra chính xác số ngày của từng tháng mục tiêu (28, 29, 30, 31 ngày).
+ * Ví dụ:
+ * - 31/01 + 1 tháng -> 28/02 (hoặc 29/02 nếu năm nhuận)
+ * - 31/03 + 1 tháng -> 30/04
+ * - 02/03/2026 + 1 tháng -> 02/04/2026
+ * - Nếu có days > 0 (ví dụ 7 ngày): cộng chính xác số ngày qua các tháng
+ */
+export function calculateWarrantyExpiry(
+  startDateStr: string,
+  months?: number | null,
+  days?: number | null
+): string {
+  if (!startDateStr) return ''
+  const parts = startDateStr.split('-').map(Number)
+  if (parts.length !== 3) return ''
+  const [year, month, day] = parts
+
+  // Trường hợp tính theo ngày (ví dụ bảo hành 7 ngày đầu)
+  if (days && days > 0) {
+    const d = new Date(year, month - 1, day)
+    d.setDate(d.getDate() + days)
+    const yyyy = String(d.getFullYear()).padStart(4, '0')
+    const mm = String(d.getMonth() + 1).padStart(2, '0')
+    const dd = String(d.getDate()).padStart(2, '0')
+    return `${yyyy}-${mm}-${dd}`
+  }
+
+  const m = Number(months) || 0
+  if (m <= 0) return startDateStr
+
+  const targetMonthIndex = month - 1 + m
+  const targetYear = year + Math.floor(targetMonthIndex / 12)
+  const normalizedMonthIndex = ((targetMonthIndex % 12) + 12) % 12
+
+  // Ngày cuối cùng của tháng mục tiêu (tự động xử lý năm nhuận 29 ngày hay năm thường 28 ngày)
+  const daysInTargetMonth = new Date(targetYear, normalizedMonthIndex + 1, 0).getDate()
+  const targetDay = Math.min(day, daysInTargetMonth)
+
+  const yyyy = String(targetYear).padStart(4, '0')
+  const mm = String(normalizedMonthIndex + 1).padStart(2, '0')
+  const dd = String(targetDay).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd}`
+}
+
+/**
+ * Phân tích số tháng hoặc số ngày từ chuỗi bảo hành của sản phẩm
+ */
+export function parseWarrantyPeriod(text: string): { months: number; days: number } {
+  if (!text) return { months: 1, days: 0 }
+  const lower = text.toLowerCase()
+
+  if (lower.includes('không bảo hành')) {
+    return { months: 0, days: 0 }
+  }
+
+  // Số ngày (ví dụ: "7 ngày")
+  const dayMatch = lower.match(/(\d+)\s*ngày/)
+  if (dayMatch && dayMatch[1]) {
+    const d = parseInt(dayMatch[1], 10)
+    if (d < 30) {
+      return { months: 0, days: d }
+    }
+  }
+
+  // Số tháng (ví dụ: "18 tháng", "8 tháng", "12 tháng", "3 tháng", "1 tháng")
+  const monthMatch = lower.match(/(\d+)\s*tháng/)
+  if (monthMatch && monthMatch[1]) {
+    return { months: parseInt(monthMatch[1], 10), days: 0 }
+  }
+
+  return { months: 1, days: 0 }
+}
+
+/**
+ * Lấy trạng thái bảo hành thực tế dựa trên ngày hết hạn và thời gian hiện tại
+ * Nếu qua ngày hết hạn -> Tự động chuyển thành 'expired'
+ */
+export function getEffectiveWarrantyStatus(
+  status: 'active' | 'expired' | 'refunded',
+  expiryDateStr?: string | null
+): 'active' | 'expired' | 'refunded' {
+  if (status === 'refunded') return 'refunded'
+  if (!expiryDateStr) return status
+
+  const now = new Date()
+  const yyyy = now.getFullYear()
+  const mm = String(now.getMonth() + 1).padStart(2, '0')
+  const dd = String(now.getDate()).padStart(2, '0')
+  const todayStr = `${yyyy}-${mm}-${dd}`
+
+  if (expiryDateStr < todayStr) {
+    return 'expired'
+  }
+  return status
+}
+
+/**
+ * Tính số ngày còn lại đến hạn bảo hành
+ */
+export function getDaysRemaining(expiryDateStr?: string | null): number | null {
+  if (!expiryDateStr) return null
+  const now = new Date()
+  now.setHours(0, 0, 0, 0)
+
+  const [y, m, d] = expiryDateStr.split('-').map(Number)
+  if (!y || !m || !d) return null
+  const target = new Date(y, m - 1, d)
+  target.setHours(0, 0, 0, 0)
+
+  const diffMs = target.getTime() - now.getTime()
+  return Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+}
+

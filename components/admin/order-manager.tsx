@@ -2,7 +2,7 @@
 
 // ============================================================
 // components/admin/order-manager.tsx
-// Quản lý Lịch sử bán hàng & Kích hoạt bảo hành
+// Quản lý Lịch sử bán hàng, Tự động tính hạn bảo hành theo lịch & Phiếu bảo hành
 // ============================================================
 import { useState, useTransition, useRef } from 'react'
 import {
@@ -27,6 +27,8 @@ import {
   Clock,
   RotateCcw,
   Upload,
+  Share2,
+  CalendarDays,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -35,7 +37,15 @@ import {
   updateOrderStatus,
   deleteOrder,
 } from '@/app/admin/actions'
-import { formatVND, formatDateShort, cn } from '@/lib/utils'
+import {
+  formatVND,
+  formatDateShort,
+  cn,
+  calculateWarrantyExpiry,
+  parseWarrantyPeriod,
+  getEffectiveWarrantyStatus,
+  getDaysRemaining,
+} from '@/lib/utils'
 import type { Order, OrderFormData, OrderStatus, Product } from '@/lib/types'
 import { toast } from 'sonner'
 
@@ -79,6 +89,7 @@ export function OrderManager({ initialOrders, products }: OrderManagerProps) {
   const [isUploadingBill, setIsUploadingBill] = useState(false)
   const [isUploadingAttachment, setIsUploadingAttachment] = useState(false)
   const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [copiedLinkId, setCopiedLinkId] = useState<string | null>(null)
 
   // Form Fields State
   const [customerName, setCustomerName] = useState('')
@@ -88,6 +99,9 @@ export function OrderManager({ initialOrders, products }: OrderManagerProps) {
   const [price, setPrice] = useState<number>(0)
   const [purchaseDate, setPurchaseDate] = useState<string>(getTodayString())
   const [warrantyDuration, setWarrantyDuration] = useState('')
+  const [warrantyMonths, setWarrantyMonths] = useState<number>(1)
+  const [warrantyDays, setWarrantyDays] = useState<number>(0)
+  const [warrantyExpiryDate, setWarrantyExpiryDate] = useState<string>('')
   const [accountNote, setAccountNote] = useState('')
   const [billImage, setBillImage] = useState<string | null>(null)
   const [attachmentImage, setAttachmentImage] = useState<string | null>(null)
@@ -101,7 +115,8 @@ export function OrderManager({ initialOrders, products }: OrderManagerProps) {
     setEditingOrder(null)
     setCustomerName('')
     setCustomerContact('')
-    setPurchaseDate(getTodayString())
+    const today = getTodayString()
+    setPurchaseDate(today)
     setAccountNote('')
     setBillImage(null)
     setAttachmentImage(null)
@@ -113,31 +128,70 @@ export function OrderManager({ initialOrders, products }: OrderManagerProps) {
       setSelectedProductId(p.id)
       setProductName(p.name)
       setPrice(p.price)
-      setWarrantyDuration(p.warranty || p.duration || 'Bảo hành Full thời gian')
+      const durationText = p.warranty || p.duration || 'Bảo hành Full thời gian'
+      setWarrantyDuration(durationText)
+      const { months, days } = parseWarrantyPeriod(durationText)
+      setWarrantyMonths(months)
+      setWarrantyDays(days)
+      setWarrantyExpiryDate(calculateWarrantyExpiry(today, months, days))
     } else {
       setSelectedProductId('')
       setProductName('')
       setPrice(0)
       setWarrantyDuration('')
+      setWarrantyMonths(1)
+      setWarrantyDays(0)
+      setWarrantyExpiryDate(calculateWarrantyExpiry(today, 1, 0))
     }
     setIsFormOpen(true)
   }
 
-  // Khi người dùng chọn sản phẩm từ dropdown -> Tự động điền giá và thời hạn bảo hành
+  // Khi chọn sản phẩm từ dropdown -> Tự động điền giá, thời hạn và TÍNH TOÁN NGÀY HẾT HẠN THEO LỊCH
   const handleProductSelect = (productId: string) => {
     setSelectedProductId(productId)
     if (productId === 'custom') {
       setProductName('')
       setPrice(0)
       setWarrantyDuration('')
+      setWarrantyMonths(1)
+      setWarrantyDays(0)
+      setWarrantyExpiryDate(calculateWarrantyExpiry(purchaseDate, 1, 0))
       return
     }
     const found = products.find((p) => p.id === productId)
     if (found) {
       setProductName(found.name)
       setPrice(found.price)
-      setWarrantyDuration(found.warranty || found.duration || 'Bảo hành Full thời gian')
+      const durationText = found.warranty || found.duration || 'Bảo hành Full thời gian'
+      setWarrantyDuration(durationText)
+      const { months, days } = parseWarrantyPeriod(durationText)
+      setWarrantyMonths(months)
+      setWarrantyDays(days)
+      // Tự động kiểm tra lịch (28/29/30/31 ngày) để chọn chính xác ngày hết hạn
+      setWarrantyExpiryDate(calculateWarrantyExpiry(purchaseDate, months, days))
     }
+  }
+
+  // Khi thay đổi ngày mua -> Tự động tính lại ngày hết hạn
+  const handlePurchaseDateChange = (newDate: string) => {
+    setPurchaseDate(newDate)
+    setWarrantyExpiryDate(calculateWarrantyExpiry(newDate, warrantyMonths, warrantyDays))
+  }
+
+  // Khi thay đổi số tháng bảo hành -> Tự động tính lại ngày hết hạn
+  const handleWarrantyMonthsChange = (months: number) => {
+    setWarrantyMonths(months)
+    setWarrantyDays(0)
+    setWarrantyExpiryDate(calculateWarrantyExpiry(purchaseDate, months, 0))
+    setWarrantyDuration(`Bảo hành ${months} tháng`)
+  }
+
+  // Chọn nhanh ngày (ví dụ 7 ngày đầu)
+  const handleSetQuickDays = (days: number) => {
+    setWarrantyDays(days)
+    setWarrantyMonths(0)
+    setWarrantyExpiryDate(calculateWarrantyExpiry(purchaseDate, 0, days))
+    setWarrantyDuration(`Bảo hành ${days} ngày đầu`)
   }
 
   // Mở modal sửa
@@ -148,8 +202,13 @@ export function OrderManager({ initialOrders, products }: OrderManagerProps) {
     setSelectedProductId(o.product_id || 'custom')
     setProductName(o.product_name)
     setPrice(o.price)
-    setPurchaseDate(o.purchase_date || getTodayString())
+    const pDate = o.purchase_date || getTodayString()
+    setPurchaseDate(pDate)
     setWarrantyDuration(o.warranty_duration || '')
+    const months = o.warranty_months !== null && o.warranty_months !== undefined ? Number(o.warranty_months) : 1
+    setWarrantyMonths(months)
+    setWarrantyDays(0)
+    setWarrantyExpiryDate(o.warranty_expiry_date || calculateWarrantyExpiry(pDate, months, 0))
     setAccountNote(o.account_note || '')
     setBillImage(o.bill_image || null)
     setAttachmentImage(o.attachment_image || null)
@@ -176,13 +235,13 @@ export function OrderManager({ initialOrders, products }: OrderManagerProps) {
         .upload(filePath, file, { cacheControl: '3600', upsert: true })
 
       if (error) {
-        // Fallback: Nếu storage có vấn đề, nén và lưu Base64 Data URL để người dùng không bị mất ảnh
+        // Fallback Base64 Data URL nếu storage gặp trục trặc
         const reader = new FileReader()
         reader.onloadend = () => {
           const base64 = reader.result as string
           if (type === 'bill') setBillImage(base64)
           else setAttachmentImage(base64)
-          toast.info('Đã lưu ảnh cục bộ.')
+          toast.info('Đã lưu ảnh.')
         }
         reader.readAsDataURL(file)
       } else {
@@ -225,6 +284,8 @@ export function OrderManager({ initialOrders, products }: OrderManagerProps) {
       account_note: accountNote.trim() || null,
       purchase_date: purchaseDate || getTodayString(),
       warranty_duration: warrantyDuration.trim() || null,
+      warranty_months: warrantyMonths,
+      warranty_expiry_date: warrantyExpiryDate || null,
       status: status,
     }
 
@@ -235,15 +296,16 @@ export function OrderManager({ initialOrders, products }: OrderManagerProps) {
           toast.error(res.error)
         } else {
           toast.success('Cập nhật đơn hàng thành công')
+          const updated: Order = {
+            ...editingOrder,
+            ...payload,
+            updated_at: new Date().toISOString(),
+          }
           setOrders((prev) =>
-            prev.map((o) =>
-              o.id === editingOrder.id
-                ? { ...o, ...payload, updated_at: new Date().toISOString() }
-                : o
-            )
+            prev.map((o) => (o.id === editingOrder.id ? updated : o))
           )
           if (viewingOrder && viewingOrder.id === editingOrder.id) {
-            setViewingOrder({ ...viewingOrder, ...payload })
+            setViewingOrder(updated)
           }
           setIsFormOpen(false)
         }
@@ -252,9 +314,12 @@ export function OrderManager({ initialOrders, products }: OrderManagerProps) {
         if (res.error) {
           toast.error(res.error)
         } else {
-          toast.success('Kích hoạt bảo hành & ghi nhận đơn thành công!')
+          toast.success('Đã tạo thành công Phiếu Bảo Hành!')
           if (res.order) {
-            setOrders((prev) => [res.order as Order, ...prev])
+            const newOrder = res.order as Order
+            setOrders((prev) => [newOrder, ...prev])
+            // Tự động mở xem chi tiết & link bảo hành để admin copy gửi Zalo ngay lập tức!
+            setViewingOrder(newOrder)
           }
           setIsFormOpen(false)
         }
@@ -312,23 +377,38 @@ export function OrderManager({ initialOrders, products }: OrderManagerProps) {
     setTimeout(() => setCopiedId(null), 2000)
   }
 
-  // Lọc và Tìm kiếm
+  // Sao chép link phiếu bảo hành dành riêng cho khách
+  const handleCopyWarrantyLink = (orderId: string) => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : ''
+    const link = `${origin}/bao-hanh/${orderId}`
+    navigator.clipboard.writeText(link)
+    setCopiedLinkId(orderId)
+    toast.success('Đã sao chép liên kết Phiếu Bảo Hành gửi cho khách!')
+    setTimeout(() => setCopiedLinkId(null), 2500)
+  }
+
+  // Lọc và Tìm kiếm (tự động tính trạng thái thực tế qua getEffectiveWarrantyStatus)
   const filteredOrders = orders.filter((o) => {
+    const effectiveStatus = getEffectiveWarrantyStatus(o.status, o.warranty_expiry_date)
     const matchSearch =
       o.customer_name.toLowerCase().includes(search.toLowerCase()) ||
       (o.customer_contact && o.customer_contact.toLowerCase().includes(search.toLowerCase())) ||
       o.product_name.toLowerCase().includes(search.toLowerCase()) ||
       (o.account_note && o.account_note.toLowerCase().includes(search.toLowerCase()))
 
-    const matchStatus = statusFilter === 'all' || o.status === statusFilter
+    const matchStatus = statusFilter === 'all' || effectiveStatus === statusFilter
 
     return matchSearch && matchStatus
   })
 
-  // Thống kê nhanh
+  // Thống kê nhanh với trạng thái thực tế (tự động hết hạn khi qua ngày)
   const totalRevenue = orders.reduce((sum, o) => sum + (Number(o.price) || 0), 0)
-  const activeCount = orders.filter((o) => o.status === 'active').length
-  const expiredCount = orders.filter((o) => o.status === 'expired').length
+  const activeCount = orders.filter(
+    (o) => getEffectiveWarrantyStatus(o.status, o.warranty_expiry_date) === 'active'
+  ).length
+  const expiredCount = orders.filter(
+    (o) => getEffectiveWarrantyStatus(o.status, o.warranty_expiry_date) === 'expired'
+  ).length
   const refundedCount = orders.filter((o) => o.status === 'refunded').length
 
   return (
@@ -345,7 +425,7 @@ export function OrderManager({ initialOrders, products }: OrderManagerProps) {
                 Đơn hàng & Bảo hành
               </h1>
               <p className="text-sm text-slate-400">
-                Quản lý lịch sử bán hàng, ảnh bill chuyển khoản và kích hoạt bảo hành.
+                Tự động kiểm tra lịch hết hạn bảo hành & tạo liên kết Phiếu bảo hành riêng cho khách.
               </p>
             </div>
           </div>
@@ -359,7 +439,7 @@ export function OrderManager({ initialOrders, products }: OrderManagerProps) {
         </button>
       </div>
 
-      {/* Cards thống kê */}
+      {/* Cards thống kê tự động */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 backdrop-blur-sm">
           <div className="flex items-center justify-between">
@@ -387,7 +467,7 @@ export function OrderManager({ initialOrders, products }: OrderManagerProps) {
             <CheckCircle2 className="w-4 h-4 text-cyan-400" />
           </div>
           <p className="text-xl md:text-2xl font-bold text-cyan-400 mt-2">{activeCount}</p>
-          <p className="text-xs text-slate-500 mt-0.5">Tài khoản còn hiệu lực</p>
+          <p className="text-xs text-slate-500 mt-0.5">Còn trong thời hạn lịch</p>
         </div>
 
         <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 backdrop-blur-sm">
@@ -401,7 +481,7 @@ export function OrderManager({ initialOrders, products }: OrderManagerProps) {
               ({expiredCount} hết hạn, {refundedCount} hoàn)
             </span>
           </p>
-          <p className="text-xs text-slate-500 mt-0.5">Đã kết thúc bảo hành</p>
+          <p className="text-xs text-slate-500 mt-0.5">Tự động chuyển khi qua ngày</p>
         </div>
       </div>
 
@@ -452,7 +532,7 @@ export function OrderManager({ initialOrders, products }: OrderManagerProps) {
               : 'Chưa có đơn hàng nào được ghi nhận'}
           </p>
           <p className="text-sm text-slate-500 mt-1 max-w-sm mx-auto">
-            Bấm nút &quot;Kích hoạt bảo hành mới&quot; để lưu thông tin khách hàng, gói dịch vụ và ảnh bill thanh toán.
+            Bấm nút &quot;Kích hoạt bảo hành mới&quot; để tạo phiếu bảo hành và lấy liên kết gửi riêng cho khách.
           </p>
           {!search && statusFilter === 'all' && (
             <button
@@ -472,15 +552,18 @@ export function OrderManager({ initialOrders, products }: OrderManagerProps) {
                 <th className="py-3.5 px-4">Khách hàng</th>
                 <th className="py-3.5 px-4">Sản phẩm / Gói</th>
                 <th className="py-3.5 px-4">Giá bán</th>
-                <th className="py-3.5 px-4">Ngày mua & Bảo hành</th>
+                <th className="py-3.5 px-4">Thời gian bảo hành</th>
                 <th className="py-3.5 px-4">Trạng thái</th>
-                <th className="py-3.5 px-4 text-center">Ảnh Bill / Đính kèm</th>
-                <th className="py-3.5 px-4 text-right">Thao tác</th>
+                <th className="py-3.5 px-4 text-center">Chứng từ</th>
+                <th className="py-3.5 px-4 text-right">Phiếu & Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
               {filteredOrders.map((order) => {
                 const brandLogo = getProductLogo(order.product_name)
+                const effectiveStatus = getEffectiveWarrantyStatus(order.status, order.warranty_expiry_date)
+                const daysRemaining = getDaysRemaining(order.warranty_expiry_date)
+
                 return (
                   <tr
                     key={order.id}
@@ -527,30 +610,41 @@ export function OrderManager({ initialOrders, products }: OrderManagerProps) {
                       {formatVND(order.price)}
                     </td>
 
-                    {/* Ngày mua */}
+                    {/* Ngày mua & Hạn bảo hành theo lịch */}
                     <td className="py-3.5 px-4 whitespace-nowrap">
-                      <div className="text-slate-300 flex items-center gap-1.5">
+                      <div className="text-slate-300 text-xs flex items-center gap-1.5">
                         <Calendar className="w-3.5 h-3.5 text-slate-500" />
-                        {order.purchase_date
-                          ? formatDateShort(order.purchase_date)
-                          : 'Hôm nay'}
+                        Mua: {order.purchase_date ? formatDateShort(order.purchase_date) : 'Hôm nay'}
                       </div>
+                      {order.warranty_expiry_date && (
+                        <div className="text-xs mt-1 flex items-center gap-1.5 font-medium">
+                          <Clock className="w-3.5 h-3.5 text-slate-500" />
+                          <span className={effectiveStatus === 'active' ? 'text-cyan-400' : 'text-slate-500'}>
+                            Hạn: {formatDateShort(order.warranty_expiry_date)}
+                          </span>
+                          {effectiveStatus === 'active' && daysRemaining !== null && (
+                            <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                              còn {daysRemaining} ngày
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </td>
 
-                    {/* Trạng thái */}
+                    {/* Trạng thái (TỰ ĐỘNG HẾT HẠN KHI QUA NGÀY) */}
                     <td className="py-3.5 px-4 whitespace-nowrap">
-                      {order.status === 'active' && (
+                      {effectiveStatus === 'active' && (
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                           Đang bảo hành
                         </span>
                       )}
-                      {order.status === 'expired' && (
+                      {effectiveStatus === 'expired' && (
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
                           Hết hạn
                         </span>
                       )}
-                      {order.status === 'refunded' && (
+                      {effectiveStatus === 'refunded' && (
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20">
                           Đã hoàn tiền
                         </span>
@@ -610,9 +704,38 @@ export function OrderManager({ initialOrders, products }: OrderManagerProps) {
                       </div>
                     </td>
 
-                    {/* Thao tác */}
+                    {/* Thao tác & Copy Link Phiếu bảo hành */}
                     <td className="py-3.5 px-4 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end gap-1.5">
+                        {/* Nút Copy Link Phiếu Bảo Hành */}
+                        <button
+                          onClick={() => handleCopyWarrantyLink(order.id)}
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs bg-violet-600/10 hover:bg-violet-600/20 text-violet-300 border border-violet-500/20 transition-all"
+                          title="Sao chép liên kết Phiếu bảo hành gửi riêng cho khách"
+                        >
+                          {copiedLinkId === order.id ? (
+                            <>
+                              <Check className="w-3.5 h-3.5 text-emerald-400" />
+                              <span className="text-emerald-400">Đã chép</span>
+                            </>
+                          ) : (
+                            <>
+                              <Share2 className="w-3.5 h-3.5" />
+                              <span>Link phiếu</span>
+                            </>
+                          )}
+                        </button>
+
+                        <a
+                          href={`/bao-hanh/${order.id}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                          title="Mở xem Phiếu bảo hành khách thấy"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                        </a>
+
                         <button
                           onClick={() => setViewingOrder(order)}
                           className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
@@ -656,7 +779,7 @@ export function OrderManager({ initialOrders, products }: OrderManagerProps) {
                   <ShieldCheck className="w-4 h-4" />
                 </div>
                 <h2 className="text-lg font-bold text-white">
-                  {editingOrder ? 'Chỉnh sửa đơn hàng' : 'Kích hoạt bảo hành & Tạo đơn mới'}
+                  {editingOrder ? 'Chỉnh sửa đơn hàng' : 'Kích hoạt bảo hành & Tạo Phiếu bảo hành'}
                 </h2>
               </div>
               <button
@@ -679,7 +802,7 @@ export function OrderManager({ initialOrders, products }: OrderManagerProps) {
                     required
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
-                    placeholder="VD: Anh Tuấn, Nguyễn Văn A..."
+                    placeholder="VD: Nguyễn Văn A..."
                     className="w-full px-3.5 py-2 bg-slate-800/80 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500 transition-colors"
                   />
                 </div>
@@ -701,7 +824,7 @@ export function OrderManager({ initialOrders, products }: OrderManagerProps) {
               {/* Chọn sản phẩm */}
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  Chọn sản phẩm (Tự động lấy giá & bảo hành) <span className="text-rose-400">*</span>
+                  Chọn sản phẩm (Tự động lấy giá, thời hạn & tính ngày theo lịch) <span className="text-rose-400">*</span>
                 </label>
                 <select
                   value={selectedProductId}
@@ -720,7 +843,7 @@ export function OrderManager({ initialOrders, products }: OrderManagerProps) {
               {/* Tên gói (nếu chọn custom hoặc cần sửa) */}
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  Tên gói hiển thị <span className="text-rose-400">*</span>
+                  Tên gói hiển thị trên Phiếu bảo hành <span className="text-rose-400">*</span>
                 </label>
                 <input
                   type="text"
@@ -732,8 +855,8 @@ export function OrderManager({ initialOrders, products }: OrderManagerProps) {
                 />
               </div>
 
-              {/* Giá bán & Ngày mua & Chính sách bảo hành */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Giá bán & Trạng thái */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-1.5">
                     Giá bán (VND)
@@ -750,19 +873,6 @@ export function OrderManager({ initialOrders, products }: OrderManagerProps) {
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                    Ngày mua / kích hoạt
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={purchaseDate}
-                    onChange={(e) => setPurchaseDate(e.target.value)}
-                    className="w-full px-3.5 py-2 bg-slate-800/80 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:border-violet-500 transition-colors [color-scheme:dark]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
                     Trạng thái
                   </label>
                   <select
@@ -770,29 +880,141 @@ export function OrderManager({ initialOrders, products }: OrderManagerProps) {
                     onChange={(e) => setStatus(e.target.value as OrderStatus)}
                     className="w-full px-3.5 py-2 bg-slate-800/80 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:border-violet-500 transition-colors"
                   >
-                    <option value="active">Đang bảo hành</option>
+                    <option value="active">Đang bảo hành (Tự động hết hạn khi qua ngày)</option>
                     <option value="expired">Hết hạn</option>
                     <option value="refunded">Đã hoàn tiền</option>
                   </select>
                 </div>
               </div>
 
-              {/* Thời hạn / Chính sách bảo hành */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  Thời hạn & Chính sách bảo hành
-                </label>
-                <input
-                  type="text"
-                  value={warrantyDuration}
-                  onChange={(e) => setWarrantyDuration(e.target.value)}
-                  placeholder="VD: Bảo hành Full 8 tháng, Bảo hành 7 ngày đầu..."
-                  className="w-full px-3.5 py-2 bg-slate-800/80 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500 transition-colors"
-                />
+              {/* KHUNG THỜI GIAN & TÍNH LỊCH BẢO HÀNH CHUẨN XÁC */}
+              <div className="p-4 rounded-xl bg-slate-950/80 border border-violet-500/30 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-violet-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <CalendarDays className="w-4 h-4 text-violet-400" />
+                    Cài đặt thời gian bảo hành theo lịch
+                  </span>
+                  <span className="text-[11px] text-slate-400">
+                    Tự động nhận diện tháng 28, 29, 30, 31 ngày
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {/* Ngày mua */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      Ngày mua / kích hoạt <span className="text-rose-400">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={purchaseDate}
+                      onChange={(e) => handlePurchaseDateChange(e.target.value)}
+                      className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-violet-500 transition-colors [color-scheme:dark]"
+                    />
+                  </div>
+
+                  {/* Bảo hành mấy tháng (hoặc ngày) */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      Bảo hành mấy tháng?
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={warrantyMonths}
+                      onChange={(e) => handleWarrantyMonthsChange(Number(e.target.value))}
+                      placeholder="VD: 1, 3, 8, 12..."
+                      className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-sm text-cyan-400 font-bold focus:outline-none focus:border-violet-500 transition-colors"
+                    />
+                  </div>
+
+                  {/* Ngày hết hạn bảo hành tự tính */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      Tự động tính ngày hết hạn
+                    </label>
+                    <input
+                      type="date"
+                      value={warrantyExpiryDate}
+                      onChange={(e) => setWarrantyExpiryDate(e.target.value)}
+                      className="w-full px-3 py-1.5 bg-slate-800 border border-cyan-500/40 rounded-lg text-sm text-cyan-300 font-bold focus:outline-none focus:border-cyan-400 transition-colors [color-scheme:dark]"
+                    />
+                  </div>
+                </div>
+
+                {/* Phím chọn nhanh thời hạn */}
+                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                  <span className="text-[11px] text-slate-400 mr-1">Chọn nhanh:</span>
+                  <button
+                    type="button"
+                    onClick={() => handleSetQuickDays(7)}
+                    className="px-2 py-0.5 rounded text-[11px] bg-slate-800 hover:bg-violet-600/30 text-slate-300 hover:text-white border border-slate-700"
+                  >
+                    7 ngày
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleWarrantyMonthsChange(1)}
+                    className="px-2 py-0.5 rounded text-[11px] bg-slate-800 hover:bg-violet-600/30 text-slate-300 hover:text-white border border-slate-700"
+                  >
+                    1 tháng
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleWarrantyMonthsChange(3)}
+                    className="px-2 py-0.5 rounded text-[11px] bg-slate-800 hover:bg-violet-600/30 text-slate-300 hover:text-white border border-slate-700"
+                  >
+                    3 tháng
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleWarrantyMonthsChange(6)}
+                    className="px-2 py-0.5 rounded text-[11px] bg-slate-800 hover:bg-violet-600/30 text-slate-300 hover:text-white border border-slate-700"
+                  >
+                    6 tháng
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleWarrantyMonthsChange(8)}
+                    className="px-2 py-0.5 rounded text-[11px] bg-slate-800 hover:bg-violet-600/30 text-slate-300 hover:text-white border border-slate-700"
+                  >
+                    8 tháng
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleWarrantyMonthsChange(12)}
+                    className="px-2 py-0.5 rounded text-[11px] bg-slate-800 hover:bg-violet-600/30 text-slate-300 hover:text-white border border-slate-700"
+                  >
+                    12 tháng
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleWarrantyMonthsChange(18)}
+                    className="px-2 py-0.5 rounded text-[11px] bg-slate-800 hover:bg-violet-600/30 text-slate-300 hover:text-white border border-slate-700"
+                  >
+                    18 tháng
+                  </button>
+                </div>
+
+                {/* Chuỗi mô tả bảo hành */}
+                <div>
+                  <label className="block text-[11px] text-slate-400 mb-1">
+                    Ghi chú chính sách hiển thị (vd: &quot;Bảo hành Full 8 tháng&quot;)
+                  </label>
+                  <input
+                    type="text"
+                    value={warrantyDuration}
+                    onChange={(e) => setWarrantyDuration(e.target.value)}
+                    placeholder="VD: Bảo hành Full 8 tháng..."
+                    className="w-full px-3 py-1.5 bg-slate-800/80 border border-slate-700 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-violet-500 transition-colors"
+                  />
+                </div>
               </div>
 
               {/* Bill chuyển khoản & Ảnh đính kèm */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
                 {/* Bill Image */}
                 <div className="p-3.5 rounded-xl border border-dashed border-slate-700 bg-slate-800/40">
                   <label className="block text-xs font-semibold text-slate-300 mb-2 flex items-center justify-between">
@@ -943,13 +1165,13 @@ export function OrderManager({ initialOrders, products }: OrderManagerProps) {
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
                   <FileText className="w-3.5 h-3.5 text-cyan-400" />
-                  Note thông tin tài khoản (bàn giao cho khách)
+                  Note thông tin tài khoản (bàn giao cho khách xem trên Phiếu bảo hành)
                 </label>
                 <textarea
                   rows={3}
                   value={accountNote}
                   onChange={(e) => setAccountNote(e.target.value)}
-                  placeholder="VD: Email / Mật khẩu / Mã PIN Profile / Link tham gia Family / Hạn dùng..."
+                  placeholder="VD: Email / Mật khẩu / 2FA / Slot profile / Link tham gia nhóm..."
                   className="w-full px-3.5 py-2.5 bg-slate-800/80 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500 transition-colors font-mono"
                 />
               </div>
@@ -969,7 +1191,7 @@ export function OrderManager({ initialOrders, products }: OrderManagerProps) {
                   className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium transition-colors disabled:opacity-50"
                 >
                   {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {editingOrder ? 'Lưu thay đổi' : 'Xác nhận tạo đơn'}
+                  {editingOrder ? 'Lưu thay đổi' : 'Xác nhận tạo Phiếu bảo hành'}
                 </button>
               </div>
             </form>
@@ -978,107 +1200,54 @@ export function OrderManager({ initialOrders, products }: OrderManagerProps) {
       )}
 
       {/* ============================================================
-          MODAL: XEM CHI TIẾT ĐƠN HÀNG
+          MODAL: XEM CHI TIẾT ĐƠN HÀNG & LIÊN KẾT PHIẾU BẢO HÀNH
          ============================================================ */}
-      {viewingOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto shadow-2xl">
-            <div className="sticky top-0 bg-slate-900/95 backdrop-blur-md px-6 py-4 border-b border-slate-800 flex items-center justify-between z-10">
-              <div>
-                <h3 className="text-lg font-bold text-white">Chi tiết đơn hàng & Bảo hành</h3>
-                <p className="text-xs text-slate-400">Mã đơn: #{viewingOrder.id.slice(0, 8)}</p>
-              </div>
-              <button
-                onClick={() => setViewingOrder(null)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+      {viewingOrder && (() => {
+        const effectiveStatus = getEffectiveWarrantyStatus(viewingOrder.status, viewingOrder.warranty_expiry_date)
+        const daysRemaining = getDaysRemaining(viewingOrder.warranty_expiry_date)
+        const origin = typeof window !== 'undefined' ? window.location.origin : ''
+        const warrantySlipUrl = `${origin}/bao-hanh/${viewingOrder.id}`
 
-            <div className="p-6 space-y-5">
-              {/* Box tổng quan */}
-              <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-slate-400">Khách hàng</span>
-                  <span className="text-sm font-bold text-white">
-                    {viewingOrder.customer_name}
-                  </span>
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-150">
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto shadow-2xl">
+              <div className="sticky top-0 bg-slate-900/95 backdrop-blur-md px-6 py-4 border-b border-slate-800 flex items-center justify-between z-10">
+                <div>
+                  <h3 className="text-lg font-bold text-white">Chi tiết Đơn hàng & Phiếu bảo hành</h3>
+                  <p className="text-xs text-slate-400">Mã đơn: #{viewingOrder.id.slice(0, 8)}</p>
                 </div>
-                {viewingOrder.customer_contact && (
+                <button
+                  onClick={() => setViewingOrder(null)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-5">
+                {/* BOX LIÊN KẾT PHIẾU BẢO HÀNH GỬI RIÊNG CHO KHÁCH */}
+                <div className="p-4 rounded-xl bg-gradient-to-r from-violet-950/60 to-indigo-950/50 border border-violet-500/30 space-y-2.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-400">Liên hệ Zalo / SĐT</span>
-                    <span className="text-sm font-mono text-cyan-400">
-                      {viewingOrder.customer_contact}
+                    <span className="text-xs font-bold uppercase tracking-wider text-violet-300 flex items-center gap-1.5">
+                      <ShieldCheck className="w-4 h-4 text-violet-400" />
+                      Liên kết Phiếu bảo hành (gửi riêng cho khách)
                     </span>
+                    <span className="text-[11px] text-emerald-400 font-medium">Bảo mật</span>
                   </div>
-                )}
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-slate-400">Sản phẩm / Gói</span>
-                  <span className="text-sm font-medium text-slate-200">
-                    {viewingOrder.product_name}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-slate-400">Giá thanh toán</span>
-                  <span className="text-base font-bold text-emerald-400">
-                    {formatVND(viewingOrder.price)}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-slate-400">Ngày mua</span>
-                  <span className="text-sm text-slate-300">
-                    {viewingOrder.purchase_date
-                      ? formatDateShort(viewingOrder.purchase_date)
-                      : 'Hôm nay'}
-                  </span>
-                </div>
-                {viewingOrder.warranty_duration && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-400">Thời hạn bảo hành</span>
-                    <span className="text-sm font-semibold text-emerald-400">
-                      🛡️ {viewingOrder.warranty_duration}
-                    </span>
-                  </div>
-                )}
-                <div className="flex items-center justify-between pt-2 border-t border-slate-800">
-                  <span className="text-xs text-slate-400">Trạng thái bảo hành</span>
+
                   <div className="flex items-center gap-2">
-                    {viewingOrder.status === 'active' && (
-                      <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                        Đang bảo hành
-                      </span>
-                    )}
-                    {viewingOrder.status === 'expired' && (
-                      <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                        Hết hạn
-                      </span>
-                    )}
-                    {viewingOrder.status === 'refunded' && (
-                      <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20">
-                        Đã hoàn tiền
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Note thông tin tài khoản */}
-              {viewingOrder.account_note && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                      <FileText className="w-3.5 h-3.5 text-cyan-400" />
-                      Thông tin tài khoản bàn giao
-                    </label>
+                    <input
+                      type="text"
+                      readOnly
+                      value={warrantySlipUrl}
+                      className="flex-1 px-3 py-1.5 bg-slate-950 border border-slate-700/80 rounded-lg text-xs font-mono text-slate-300 select-all"
+                    />
                     <button
                       type="button"
-                      onClick={() =>
-                        handleCopyNote(viewingOrder.account_note!, viewingOrder.id)
-                      }
-                      className="text-xs text-violet-400 hover:text-violet-300 flex items-center gap-1"
+                      onClick={() => handleCopyWarrantyLink(viewingOrder.id)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-violet-600 hover:bg-violet-500 text-white transition-colors shrink-0"
                     >
-                      {copiedId === viewingOrder.id ? (
+                      {copiedLinkId === viewingOrder.id ? (
                         <>
                           <Check className="w-3.5 h-3.5 text-emerald-400" />
                           <span className="text-emerald-400">Đã chép</span>
@@ -1086,136 +1255,260 @@ export function OrderManager({ initialOrders, products }: OrderManagerProps) {
                       ) : (
                         <>
                           <Copy className="w-3.5 h-3.5" />
-                          Sao chép nhanh
+                          <span>Sao chép</span>
                         </>
                       )}
                     </button>
-                  </div>
-                  <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-sm font-mono text-slate-300 whitespace-pre-wrap break-all selection:bg-violet-600">
-                    {viewingOrder.account_note}
+                    <a
+                      href={`/bao-hanh/${viewingOrder.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-colors"
+                      title="Mở tab mới xem giao diện khách"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </a>
                   </div>
                 </div>
-              )}
 
-              {/* Hình ảnh Bill & Đính kèm */}
-              <div className="grid grid-cols-2 gap-3">
-                {viewingOrder.bill_image ? (
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-400 mb-1.5">
-                      Bill chuyển khoản
-                    </label>
-                    <div
-                      onClick={() =>
-                        setViewingImage({
-                          url: viewingOrder.bill_image!,
-                          title: `Bill chuyển khoản - ${viewingOrder.customer_name}`,
-                        })
-                      }
-                      className="h-36 rounded-xl overflow-hidden border border-slate-700 bg-slate-950 cursor-pointer relative group"
-                    >
-                      <img
-                        src={viewingOrder.bill_image}
-                        alt="Bill"
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                      />
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <span className="text-xs text-white bg-black/60 px-2 py-1 rounded">
-                          Xem phóng to
+                {/* Box tổng quan */}
+                <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-400">Khách hàng</span>
+                    <span className="text-sm font-bold text-white">
+                      {viewingOrder.customer_name}
+                    </span>
+                  </div>
+                  {viewingOrder.customer_contact && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-slate-400">Liên hệ Zalo / SĐT</span>
+                      <span className="text-sm font-mono text-cyan-400">
+                        {viewingOrder.customer_contact}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-400">Sản phẩm / Gói</span>
+                    <span className="text-sm font-medium text-slate-200">
+                      {viewingOrder.product_name}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-400">Giá thanh toán</span>
+                    <span className="text-base font-bold text-emerald-400">
+                      {formatVND(viewingOrder.price)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-400">Ngày kích hoạt</span>
+                    <span className="text-sm text-slate-300">
+                      {viewingOrder.purchase_date
+                        ? formatDateShort(viewingOrder.purchase_date)
+                        : 'Hôm nay'}
+                    </span>
+                  </div>
+                  {viewingOrder.warranty_expiry_date && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-slate-400">Hạn bảo hành theo lịch</span>
+                      <span className="text-sm font-bold text-cyan-400">
+                        {formatDateShort(viewingOrder.warranty_expiry_date)}{' '}
+                        {effectiveStatus === 'active' && daysRemaining !== null && (
+                          <span className="text-xs text-emerald-400 font-normal">
+                            (Còn {daysRemaining} ngày)
+                          </span>
+                        )}
+                        {effectiveStatus === 'expired' && (
+                          <span className="text-xs text-amber-400 font-normal">
+                            (Đã qua ngày)
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  )}
+                  {viewingOrder.warranty_duration && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-slate-400">Chính sách cam kết</span>
+                      <span className="text-sm font-semibold text-emerald-400">
+                        🛡️ {viewingOrder.warranty_duration}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-800">
+                    <span className="text-xs text-slate-400">Trạng thái bảo hành</span>
+                    <div className="flex items-center gap-2">
+                      {effectiveStatus === 'active' && (
+                        <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                          Đang bảo hành
                         </span>
-                      </div>
+                      )}
+                      {effectiveStatus === 'expired' && (
+                        <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                          Hết hạn
+                        </span>
+                      )}
+                      {effectiveStatus === 'refunded' && (
+                        <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                          Đã hoàn tiền
+                        </span>
+                      )}
                     </div>
                   </div>
-                ) : (
-                  <div className="h-36 rounded-xl border border-dashed border-slate-800 flex items-center justify-center text-xs text-slate-600">
-                    Không có bill
+                </div>
+
+                {/* Note thông tin tài khoản */}
+                {viewingOrder.account_note && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                        <FileText className="w-3.5 h-3.5 text-cyan-400" />
+                        Thông tin tài khoản bàn giao
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleCopyNote(viewingOrder.account_note!, viewingOrder.id)
+                        }
+                        className="text-xs text-violet-400 hover:text-violet-300 flex items-center gap-1"
+                      >
+                        {copiedId === viewingOrder.id ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 text-emerald-400" />
+                            <span className="text-emerald-400">Đã chép</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3.5 h-3.5" />
+                            Sao chép nhanh
+                          </>
+                        )}
+                      </button>
+                    </div>
+                    <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-sm font-mono text-slate-300 whitespace-pre-wrap break-all selection:bg-violet-600">
+                      {viewingOrder.account_note}
+                    </div>
                   </div>
                 )}
 
-                {viewingOrder.attachment_image ? (
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-400 mb-1.5">
-                      Hình ảnh đính kèm
-                    </label>
-                    <div
-                      onClick={() =>
-                        setViewingImage({
-                          url: viewingOrder.attachment_image!,
-                          title: `Ảnh đính kèm - ${viewingOrder.customer_name}`,
-                        })
-                      }
-                      className="h-36 rounded-xl overflow-hidden border border-slate-700 bg-slate-950 cursor-pointer relative group"
-                    >
-                      <img
-                        src={viewingOrder.attachment_image}
-                        alt="Attachment"
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                      />
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <span className="text-xs text-white bg-black/60 px-2 py-1 rounded">
-                          Xem phóng to
-                        </span>
+                {/* Hình ảnh Bill & Đính kèm */}
+                <div className="grid grid-cols-2 gap-3">
+                  {viewingOrder.bill_image ? (
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-400 mb-1.5">
+                        Bill chuyển khoản
+                      </label>
+                      <div
+                        onClick={() =>
+                          setViewingImage({
+                            url: viewingOrder.bill_image!,
+                            title: `Bill chuyển khoản - ${viewingOrder.customer_name}`,
+                          })
+                        }
+                        className="h-36 rounded-xl overflow-hidden border border-slate-700 bg-slate-950 cursor-pointer relative group"
+                      >
+                        <img
+                          src={viewingOrder.bill_image}
+                          alt="Bill"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                        />
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <span className="text-xs text-white bg-black/60 px-2 py-1 rounded">
+                            Xem phóng to
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ) : (
-                  <div className="h-36 rounded-xl border border-dashed border-slate-800 flex items-center justify-center text-xs text-slate-600">
-                    Không có ảnh đính kèm
-                  </div>
-                )}
-              </div>
+                  ) : (
+                    <div className="h-36 rounded-xl border border-dashed border-slate-800 flex items-center justify-center text-xs text-slate-600">
+                      Không có bill
+                    </div>
+                  )}
 
-              {/* Nút chuyển trạng thái nhanh */}
-              <div className="pt-3 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs text-slate-400">Đổi trạng thái:</span>
-                  {viewingOrder.status !== 'active' && (
-                    <button
-                      type="button"
-                      onClick={() => handleQuickStatusChange(viewingOrder, 'active')}
-                      className="px-2.5 py-1 rounded-lg text-xs bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30 transition-colors"
-                    >
-                      Kích hoạt lại
-                    </button>
-                  )}
-                  {viewingOrder.status !== 'expired' && (
-                    <button
-                      type="button"
-                      onClick={() => handleQuickStatusChange(viewingOrder, 'expired')}
-                      className="px-2.5 py-1 rounded-lg text-xs bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 border border-amber-500/30 transition-colors"
-                    >
-                      Báo hết hạn
-                    </button>
-                  )}
-                  {viewingOrder.status !== 'refunded' && (
-                    <button
-                      type="button"
-                      onClick={() => handleQuickStatusChange(viewingOrder, 'refunded')}
-                      className="px-2.5 py-1 rounded-lg text-xs bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/30 transition-colors"
-                    >
-                      Hoàn tiền
-                    </button>
+                  {viewingOrder.attachment_image ? (
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-400 mb-1.5">
+                        Hình ảnh đính kèm
+                      </label>
+                      <div
+                        onClick={() =>
+                          setViewingImage({
+                            url: viewingOrder.attachment_image!,
+                            title: `Ảnh đính kèm - ${viewingOrder.customer_name}`,
+                          })
+                        }
+                        className="h-36 rounded-xl overflow-hidden border border-slate-700 bg-slate-950 cursor-pointer relative group"
+                      >
+                        <img
+                          src={viewingOrder.attachment_image}
+                          alt="Attachment"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                        />
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <span className="text-xs text-white bg-black/60 px-2 py-1 rounded">
+                            Xem phóng to
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="h-36 rounded-xl border border-dashed border-slate-800 flex items-center justify-center text-xs text-slate-600">
+                      Không có ảnh đính kèm
+                    </div>
                   )}
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const toEdit = viewingOrder
-                      setViewingOrder(null)
-                      handleOpenEdit(toEdit)
-                    }}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors"
-                  >
-                    <Edit2 className="w-3.5 h-3.5" />
-                    Chỉnh sửa
-                  </button>
+                {/* Nút chuyển trạng thái nhanh */}
+                <div className="pt-3 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-slate-400">Đổi trạng thái:</span>
+                    {viewingOrder.status !== 'active' && (
+                      <button
+                        type="button"
+                        onClick={() => handleQuickStatusChange(viewingOrder, 'active')}
+                        className="px-2.5 py-1 rounded-lg text-xs bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30 transition-colors"
+                      >
+                        Kích hoạt lại
+                      </button>
+                    )}
+                    {viewingOrder.status !== 'expired' && (
+                      <button
+                        type="button"
+                        onClick={() => handleQuickStatusChange(viewingOrder, 'expired')}
+                        className="px-2.5 py-1 rounded-lg text-xs bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 border border-amber-500/30 transition-colors"
+                      >
+                        Báo hết hạn
+                      </button>
+                    )}
+                    {viewingOrder.status !== 'refunded' && (
+                      <button
+                        type="button"
+                        onClick={() => handleQuickStatusChange(viewingOrder, 'refunded')}
+                        className="px-2.5 py-1 rounded-lg text-xs bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/30 transition-colors"
+                      >
+                        Hoàn tiền
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const toEdit = viewingOrder
+                        setViewingOrder(null)
+                        handleOpenEdit(toEdit)
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                      Chỉnh sửa
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       {/* ============================================================
           MODAL: XEM ẢNH PHÓNG TO (LIGHTBOX)

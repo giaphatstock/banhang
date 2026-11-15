@@ -15,7 +15,13 @@ import {
   Receipt,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
-import { formatDate, formatVND, getStatusColor, getStatusLabel } from '@/lib/utils'
+import {
+  formatDate,
+  formatVND,
+  getStatusColor,
+  getStatusLabel,
+  getEffectiveWarrantyStatus,
+} from '@/lib/utils'
 import type { Customer, Product, Order } from '@/lib/types'
 
 export const revalidate = 0 // Luôn lấy dữ liệu mới nhất trong admin
@@ -31,13 +37,18 @@ async function getDashboardData() {
   const totalProducts = products?.length || 0
   const activeProducts = products?.filter((p) => p.is_active).length || 0
 
-  // 2. Thống kê đơn hàng & bảo hành
+  // 2. Thống kê đơn hàng & bảo hành (tự động tính hạn lịch qua getEffectiveWarrantyStatus)
   const { data: orders } = await supabase
     .from('orders')
-    .select('id, price, status, created_at')
+    .select('id, price, status, purchase_date, warranty_expiry_date, created_at')
 
   const totalOrders = orders?.length || 0
-  const activeWarranties = orders?.filter((o) => o.status === 'active').length || 0
+  const activeWarranties =
+    orders?.filter(
+      (o) =>
+        getEffectiveWarrantyStatus(o.status as any, o.warranty_expiry_date) ===
+        'active'
+    ).length || 0
   const totalRevenue = orders?.reduce((sum, o) => sum + (Number(o.price) || 0), 0) || 0
 
   // 3. Thống kê khách hàng
@@ -224,45 +235,51 @@ export default async function AdminDashboardPage() {
             </thead>
             <tbody className="divide-y divide-white/5">
               {recentOrders.length > 0 ? (
-                recentOrders.map((o) => (
-                  <tr key={o.id} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="px-5 py-4 font-medium text-white">
-                      <div>{o.customer_name}</div>
-                      {o.customer_contact && (
-                        <div className="text-xs text-slate-400 font-mono mt-0.5">{o.customer_contact}</div>
-                      )}
-                    </td>
-                    <td className="px-5 py-4 text-xs text-slate-200 font-medium">
-                      {o.product_name}
-                      {o.warranty_duration && (
-                        <div className="text-[11px] text-emerald-400/90 mt-0.5">🛡️ {o.warranty_duration}</div>
-                      )}
-                    </td>
-                    <td className="px-5 py-4 font-semibold text-emerald-400 text-xs">
-                      {formatVND(o.price)}
-                    </td>
-                    <td className="px-5 py-4">
-                      {o.status === 'active' && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                          Đang bảo hành
-                        </span>
-                      )}
-                      {o.status === 'expired' && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                          Hết hạn
-                        </span>
-                      )}
-                      {o.status === 'refunded' && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20">
-                          Hoàn tiền
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-5 py-4 text-xs text-slate-400">
-                      {o.purchase_date || formatDate(o.created_at)}
-                    </td>
-                  </tr>
-                ))
+                recentOrders.map((o) => {
+                  const effectiveStatus = getEffectiveWarrantyStatus(
+                    o.status,
+                    o.warranty_expiry_date
+                  )
+                  return (
+                    <tr key={o.id} className="hover:bg-white/[0.02] transition-colors">
+                      <td className="px-5 py-4 font-medium text-white">
+                        <div>{o.customer_name}</div>
+                        {o.customer_contact && (
+                          <div className="text-xs text-slate-400 font-mono mt-0.5">{o.customer_contact}</div>
+                        )}
+                      </td>
+                      <td className="px-5 py-4 text-xs text-slate-200 font-medium">
+                        {o.product_name}
+                        {o.warranty_duration && (
+                          <div className="text-[11px] text-emerald-400/90 mt-0.5">🛡️ {o.warranty_duration}</div>
+                        )}
+                      </td>
+                      <td className="px-5 py-4 font-semibold text-emerald-400 text-xs">
+                        {formatVND(o.price)}
+                      </td>
+                      <td className="px-5 py-4">
+                        {effectiveStatus === 'active' && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            Đang bảo hành
+                          </span>
+                        )}
+                        {effectiveStatus === 'expired' && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                            Hết hạn
+                          </span>
+                        )}
+                        {effectiveStatus === 'refunded' && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                            Hoàn tiền
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-5 py-4 text-xs text-slate-400">
+                        {o.purchase_date || formatDate(o.created_at)}
+                      </td>
+                    </tr>
+                  )
+                })
               ) : (
                 <tr>
                   <td colSpan={5} className="px-5 py-8 text-center text-sm text-slate-500">

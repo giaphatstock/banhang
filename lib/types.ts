@@ -117,6 +117,8 @@ export interface Order {
   account_note?: string | null
   purchase_date: string // YYYY-MM-DD
   warranty_duration?: string | null
+  warranty_months?: number | null
+  warranty_expiry_date?: string | null // YYYY-MM-DD
   status: OrderStatus
   created_at: string
   updated_at: string
@@ -134,6 +136,8 @@ export interface OrderFormData {
   account_note?: string | null
   purchase_date: string
   warranty_duration?: string | null
+  warranty_months?: number | null
+  warranty_expiry_date?: string | null
   status?: OrderStatus
 }
 

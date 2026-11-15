@@ -15,6 +15,8 @@ export const orderSchema = z.object({
   account_note: z.string().nullable().optional(),
   purchase_date: z.string().min(1, 'Vui lòng chọn ngày mua'),
   warranty_duration: z.string().nullable().optional(),
+  warranty_months: z.coerce.number().nullable().optional(),
+  warranty_expiry_date: z.string().nullable().optional(),
   status: z.enum(['active', 'expired', 'refunded']).default('active'),
 })
 
