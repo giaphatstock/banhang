@@ -163,49 +163,50 @@ export function ProductCard({ product, onBuyClick, index = 0 }: ProductCardProps
 }
 
 // ============================================================
-// ProductIcon - Hiển thị icon dựa trên tên sản phẩm
+// ProductIcon - Hiển thị logo chính hãng dựa trên tên sản phẩm
 // ============================================================
 function ProductIcon({ productName }: { productName: string }) {
   const name = productName.toLowerCase()
 
-  // Màu và chữ viết tắt dựa trên dịch vụ
-  const getIconConfig = () => {
-    if (name.includes('gemini')) {
-      return { bg: 'from-blue-500 to-purple-600', text: 'G', emoji: '✨' }
+  const getLogo = () => {
+    if (name.includes('gemini') || name.includes('google drive')) {
+      return { src: '/brands/gemini.svg', alt: 'Gemini' }
     }
-    if (name.includes('chatgpt')) {
-      return { bg: 'from-emerald-500 to-teal-600', text: 'C', emoji: '🤖' }
+    if (name.includes('chatgpt') || name.includes('openai')) {
+      return { src: '/brands/chatgpt.svg', alt: 'ChatGPT' }
     }
     if (name.includes('netflix')) {
-      return { bg: 'from-red-600 to-red-800', text: 'N', emoji: '🎬' }
+      return { src: '/brands/netflix.svg', alt: 'Netflix' }
     }
     if (name.includes('youtube')) {
-      return { bg: 'from-red-500 to-pink-600', text: 'YT', emoji: '▶' }
+      return { src: '/brands/youtube.svg', alt: 'YouTube' }
     }
     if (name.includes('spotify')) {
-      return { bg: 'from-green-500 to-emerald-600', text: 'S', emoji: '🎵' }
+      return { src: '/brands/spotify.svg', alt: 'Spotify' }
     }
     if (name.includes('canva')) {
-      return { bg: 'from-purple-500 to-violet-700', text: 'C', emoji: '🎨' }
+      return { src: '/brands/canva.svg', alt: 'Canva' }
     }
     if (name.includes('capcut')) {
-      return { bg: 'from-pink-500 to-rose-600', text: 'CC', emoji: '✂' }
+      return { src: '/brands/capcut.svg', alt: 'CapCut' }
     }
-    return { bg: 'from-violet-500 to-cyan-600', text: productName[0], emoji: '⭐' }
+    return { src: '/brands/google.svg', alt: productName }
   }
 
-  const config = getIconConfig()
+  const logo = getLogo()
 
   return (
     <div
-      className={cn(
-        'w-11 h-11 rounded-xl bg-gradient-to-br flex items-center justify-center',
-        'text-white font-bold text-sm shrink-0 shadow-lg',
-        config.bg
-      )}
+      className="w-12 h-12 rounded-2xl bg-white/[0.04] border border-white/10 p-2.5 flex items-center justify-center shrink-0 shadow-lg shadow-black/40 overflow-hidden"
       aria-hidden="true"
     >
-      <span className="text-base">{config.emoji}</span>
+      <img
+        src={logo.src}
+        alt={logo.alt}
+        width="32"
+        height="32"
+        className="w-full h-full object-contain"
+      />
     </div>
   )
 }

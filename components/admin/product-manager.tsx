@@ -35,6 +35,18 @@ interface ProductManagerProps {
   categories: Category[]
 }
 
+function getProductLogo(productName: string) {
+  const name = productName.toLowerCase()
+  if (name.includes('gemini') || name.includes('google drive')) return '/brands/gemini.svg'
+  if (name.includes('chatgpt') || name.includes('openai')) return '/brands/chatgpt.svg'
+  if (name.includes('netflix')) return '/brands/netflix.svg'
+  if (name.includes('youtube')) return '/brands/youtube.svg'
+  if (name.includes('spotify')) return '/brands/spotify.svg'
+  if (name.includes('canva')) return '/brands/canva.svg'
+  if (name.includes('capcut')) return '/brands/capcut.svg'
+  return '/brands/google.svg'
+}
+
 export function ProductManager({ initialProducts, categories }: ProductManagerProps) {
   const [products, setProducts] = useState<Product[]>(initialProducts)
   const [search, setSearch] = useState('')
@@ -328,6 +340,13 @@ export function ProductManager({ initialProducts, categories }: ProductManagerPr
                   <tr key={p.id} className="hover:bg-white/[0.02] transition-colors">
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/10 p-1.5 flex items-center justify-center shrink-0">
+                          <img
+                            src={getProductLogo(p.name)}
+                            alt=""
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
                         <div>
                           <div className="flex items-center gap-2">
                             <span className="font-semibold text-white">{p.name}</span>
