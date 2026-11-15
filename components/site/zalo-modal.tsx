@@ -138,6 +138,8 @@ export function ZaloModal({
 function ZaloOfficialIcon({ className }: { className?: string }) {
   return (
     <svg
+      width="40"
+      height="40"
       className={className}
       viewBox="0 0 48 48"
       fill="none"

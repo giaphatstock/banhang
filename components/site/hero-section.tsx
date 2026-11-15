@@ -184,6 +184,8 @@ export function HeroSection({ zaloPhone, zaloLink }: HeroSectionProps) {
 function ZaloIcon({ className }: { className?: string }) {
   return (
     <svg
+      width="20"
+      height="20"
       className={className}
       viewBox="0 0 48 48"
       fill="none"
