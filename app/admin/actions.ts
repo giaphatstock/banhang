@@ -24,17 +24,31 @@ export async function loginAdmin(formData: FormData) {
     return { error: 'Vui lòng nhập đầy đủ email và mật khẩu.' }
   }
 
-  // Whitelist check trước khi cho phép đăng nhập
-  const adminEmails = (process.env.ADMIN_EMAILS ?? '')
+  // Whitelist check: biến môi trường ADMIN_EMAILS HOẶC bảng admin_users trong database
+  const envAdminEmails = (process.env.ADMIN_EMAILS ?? '')
     .split(',')
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean)
 
-  if (!adminEmails.includes(email.toLowerCase())) {
+  let isAllowed = envAdminEmails.includes(email.toLowerCase())
+
+  const supabase = await createClient()
+
+  if (!isAllowed) {
+    const { data: adminRecord } = await supabase
+      .from('admin_users')
+      .select('id')
+      .ilike('email', email.trim())
+      .maybeSingle()
+    if (adminRecord) {
+      isAllowed = true
+    }
+  }
+
+  if (!isAllowed) {
     return { error: 'Tài khoản không có quyền truy cập vào trang quản trị.' }
   }
 
-  const supabase = await createClient()
   const { error } = await supabase.auth.signInWithPassword({
     email,
     password,
@@ -250,6 +264,48 @@ export async function updateSettings(data: SettingsFormData) {
 
   revalidatePath('/')
   revalidatePath('/lien-he')
+  revalidatePath('/admin/settings')
+  return { success: true }
+}
+
+// ------------------------------------------------------------
+// ADMIN USERS ACTIONS
+// ------------------------------------------------------------
+
+export async function addAdminUser(email: string, note?: string) {
+  const cleanEmail = email.trim().toLowerCase()
+  if (!cleanEmail || !cleanEmail.includes('@')) {
+    return { error: 'Email không hợp lệ.' }
+  }
+
+  const supabase = await createClient()
+  const { error } = await supabase.from('admin_users').insert([
+    {
+      email: cleanEmail,
+      role: 'admin',
+      note: note?.trim() || 'Quản trị viên',
+    },
+  ])
+
+  if (error) {
+    if (error.code === '23505') {
+      return { error: 'Email này đã tồn tại trong danh sách admin.' }
+    }
+    return { error: 'Lỗi khi thêm admin: ' + error.message }
+  }
+
+  revalidatePath('/admin/settings')
+  return { success: true }
+}
+
+export async function deleteAdminUser(id: string) {
+  const supabase = await createClient()
+  const { error } = await supabase.from('admin_users').delete().eq('id', id)
+
+  if (error) {
+    return { error: 'Không thể xóa admin: ' + error.message }
+  }
+
   revalidatePath('/admin/settings')
   return { success: true }
 }

@@ -49,13 +49,26 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(loginUrl)
     }
 
-    // Kiểm tra email trong whitelist ADMIN_EMAILS
+    // Kiểm tra email trong whitelist ADMIN_EMAILS hoặc bảng admin_users trong database
     const adminEmails = (process.env.ADMIN_EMAILS ?? '')
       .split(',')
       .map((e) => e.trim().toLowerCase())
       .filter(Boolean)
 
-    if (!adminEmails.includes(user.email?.toLowerCase() ?? '')) {
+    let isAuthorized = adminEmails.includes(user.email?.toLowerCase() ?? '')
+
+    if (!isAuthorized && user.email) {
+      const { data: dbAdmin } = await supabase
+        .from('admin_users')
+        .select('id')
+        .ilike('email', user.email)
+        .maybeSingle()
+      if (dbAdmin) {
+        isAuthorized = true
+      }
+    }
+
+    if (!isAuthorized) {
       // Email không trong whitelist → logout và redirect về login
       await supabase.auth.signOut()
       const loginUrl = new URL('/admin/login', request.url)
@@ -71,7 +84,20 @@ export async function middleware(request: NextRequest) {
       .map((e) => e.trim().toLowerCase())
       .filter(Boolean)
 
-    if (adminEmails.includes(user.email?.toLowerCase() ?? '')) {
+    let isAuthorized = adminEmails.includes(user.email?.toLowerCase() ?? '')
+
+    if (!isAuthorized && user.email) {
+      const { data: dbAdmin } = await supabase
+        .from('admin_users')
+        .select('id')
+        .ilike('email', user.email)
+        .maybeSingle()
+      if (dbAdmin) {
+        isAuthorized = true
+      }
+    }
+
+    if (isAuthorized) {
       return NextResponse.redirect(new URL('/admin', request.url))
     }
   }

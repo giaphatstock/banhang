@@ -91,3 +91,11 @@ export interface DashboardStats {
   newCustomersThisWeek: number
   activeProducts: number
 }
+
+export interface AdminUser {
+  id: string
+  email: string
+  role: string
+  note: string | null
+  created_at: string
+}

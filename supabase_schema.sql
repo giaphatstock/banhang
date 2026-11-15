@@ -284,11 +284,36 @@ ON CONFLICT (slug) DO NOTHING;
 -- SEED DATA: site_settings mặc định
 -- ============================================================
 INSERT INTO site_settings (key, value) VALUES
-  ('zalo_phone', '0123456789'),
-  ('shop_name', 'OpenLay'),
-  ('contact_email', 'contact@openlay.vn'),
-  ('zalo_link', 'https://zalo.me/0123456789'),
+  ('zalo_phone', '0764894250'),
+  ('shop_name', 'AI GIÁ SỈ'),
+  ('contact_email', 'contact@aigiasi.vn'),
+  ('zalo_link', 'https://zalo.me/0764894250'),
   ('facebook_link', ''),
   ('telegram_link', ''),
-  ('shop_description', 'Cung cấp tài khoản số chính hãng, bảo hành uy tín')
+  ('shop_description', 'Cung cấp tài khoản số AI & Công nghệ chính hãng, bảo hành uy tín')
 ON CONFLICT (key) DO NOTHING;
+
+-- ============================================================
+-- BẢNG: admin_users (Quản lý phân quyền Quản trị viên)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS admin_users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email TEXT NOT NULL UNIQUE,
+  role TEXT NOT NULL DEFAULT 'admin',
+  note TEXT DEFAULT 'Quản trị viên',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE admin_users ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public read admin_users" ON admin_users FOR SELECT USING (true);
+CREATE POLICY "Allow authenticated manage admin_users" ON admin_users FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+GRANT ALL ON admin_users TO authenticated;
+GRANT SELECT ON admin_users TO anon;
+GRANT ALL ON admin_users TO service_role;
+
+INSERT INTO admin_users (email, role, note) VALUES
+  ('phatdeeptraisiu@gmail.com', 'super_admin', 'Admin chính'),
+  ('admin@aigiasi.vn', 'super_admin', 'Admin dự phòng')
+ON CONFLICT (email) DO NOTHING;

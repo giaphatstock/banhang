@@ -15,19 +15,27 @@ import {
   Loader2,
   CheckCircle2,
   ExternalLink,
+  Shield,
+  UserPlus,
+  Trash2,
 } from 'lucide-react'
-import { updateSettings } from '@/app/admin/actions'
-import type { SiteSettingsObject } from '@/lib/types'
+import { updateSettings, addAdminUser, deleteAdminUser } from '@/app/admin/actions'
+import type { SiteSettingsObject, AdminUser } from '@/lib/types'
 import type { SettingsFormData } from '@/lib/validations/settings'
 import { toast } from 'sonner'
 
 interface SettingsManagerProps {
   initialSettings: SiteSettingsObject
+  initialAdminUsers?: AdminUser[]
 }
 
-export function SettingsManager({ initialSettings }: SettingsManagerProps) {
+export function SettingsManager({ initialSettings, initialAdminUsers = [] }: SettingsManagerProps) {
   const [formData, setFormData] = useState<SiteSettingsObject>(initialSettings)
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>(initialAdminUsers)
+  const [newAdminEmail, setNewAdminEmail] = useState('')
+  const [newAdminNote, setNewAdminNote] = useState('')
   const [isPending, startTransition] = useTransition()
+  const [isAddingAdmin, setIsAddingAdmin] = useState(false)
 
   const handleChange = (field: keyof SiteSettingsObject, val: string) => {
     setFormData((prev) => {
@@ -61,6 +69,48 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
         toast.success('Đã lưu cấu hình hệ thống thành công!')
       }
     })
+  }
+
+  const handleAddAdmin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newAdminEmail.trim()) {
+      toast.error('Vui lòng nhập email admin')
+      return
+    }
+
+    setIsAddingAdmin(true)
+    const res = await addAdminUser(newAdminEmail, newAdminNote)
+    setIsAddingAdmin(false)
+
+    if (res.error) {
+      toast.error(res.error)
+    } else {
+      toast.success(`Đã thêm quyền admin cho ${newAdminEmail}`)
+      setAdminUsers((prev) => [
+        {
+          id: Math.random().toString(),
+          email: newAdminEmail.trim().toLowerCase(),
+          role: 'admin',
+          note: newAdminNote.trim() || 'Quản trị viên',
+          created_at: new Date().toISOString(),
+        },
+        ...prev,
+      ])
+      setNewAdminEmail('')
+      setNewAdminNote('')
+    }
+  }
+
+  const handleDeleteAdmin = async (id: string, email: string) => {
+    if (!confirm(`Bạn có chắc muốn xóa quyền admin của ${email}?`)) return
+
+    const res = await deleteAdminUser(id)
+    if (res.error) {
+      toast.error(res.error)
+    } else {
+      toast.success(`Đã xóa ${email} khỏi danh sách admin`)
+      setAdminUsers((prev) => prev.filter((a) => a.id !== id))
+    }
   }
 
   return (
@@ -252,6 +302,107 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
           </button>
         </div>
       </form>
+
+      {/* Card 4: Quản lý Admin Users (Bảng admin_users trong Supabase) */}
+      <div className="glass-card p-6 rounded-2xl border border-white/5 space-y-6 pt-6 mt-8">
+        <div className="flex items-center justify-between pb-3 border-b border-white/5 flex-wrap gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-violet-500/10 text-violet-400">
+              <Shield className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-white">Quản lý Tài khoản Admin (Bảng admin_users)</h2>
+              <p className="text-xs text-slate-400">
+                Email trong danh sách này được phép đăng nhập vào trang quản trị /admin. Đồng bộ trực tiếp với bảng <code className="text-violet-400">admin_users</code> trên Supabase.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Form thêm admin */}
+        <form onSubmit={handleAddAdmin} className="grid grid-cols-1 sm:grid-cols-12 gap-3 p-4 rounded-xl bg-white/[0.02] border border-white/5">
+          <div className="sm:col-span-6">
+            <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">
+              Email Quản trị viên mới
+            </label>
+            <input
+              type="email"
+              required
+              value={newAdminEmail}
+              onChange={(e) => setNewAdminEmail(e.target.value)}
+              placeholder="admin@example.com"
+              className="w-full px-3.5 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-violet-500"
+            />
+          </div>
+          <div className="sm:col-span-4">
+            <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">
+              Ghi chú / Tên
+            </label>
+            <input
+              type="text"
+              value={newAdminNote}
+              onChange={(e) => setNewAdminNote(e.target.value)}
+              placeholder="VD: Quản lý kỹ thuật"
+              className="w-full px-3.5 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-violet-500"
+            />
+          </div>
+          <div className="sm:col-span-2 flex items-end">
+            <button
+              type="submit"
+              disabled={isAddingAdmin}
+              className="w-full py-2 px-3 bg-violet-600 hover:bg-violet-500 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {isAddingAdmin ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <UserPlus className="w-3.5 h-3.5" />
+              )}
+              <span>Thêm Admin</span>
+            </button>
+          </div>
+        </form>
+
+        {/* Danh sách Admin */}
+        <div className="space-y-2">
+          <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            Danh sách Admin hiện tại ({adminUsers.length})
+          </div>
+          <div className="divide-y divide-white/5 rounded-xl border border-white/5 bg-black/20 overflow-hidden">
+            {adminUsers.map((admin) => (
+              <div
+                key={admin.id}
+                className="p-3.5 flex items-center justify-between gap-4 hover:bg-white/[0.02] transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-violet-500/20 text-violet-300 flex items-center justify-center text-xs font-bold uppercase">
+                    {admin.email.slice(0, 2)}
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-white flex items-center gap-2">
+                      <span>{admin.email}</span>
+                      <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-300 border border-violet-500/30">
+                        {admin.role}
+                      </span>
+                    </div>
+                    {admin.note && (
+                      <div className="text-xs text-slate-400">{admin.note}</div>
+                    )}
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleDeleteAdmin(admin.id, admin.email)}
+                  title="Xóa quyền admin"
+                  className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
