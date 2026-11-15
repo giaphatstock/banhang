@@ -45,16 +45,18 @@ export default function AdminLoginPage() {
 
       <div className="glass-card max-w-md w-full p-8 md:p-10 rounded-3xl relative z-10 border border-white/10 shadow-2xl">
         <div className="text-center mb-8">
-          <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gradient-to-tr from-violet-600 to-cyan-500 p-[1px] flex items-center justify-center">
-            <div className="w-full h-full bg-[#0A0A0F] rounded-2xl flex items-center justify-center">
-              <ShieldCheck className="w-7 h-7 text-violet-400" />
-            </div>
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl overflow-hidden border border-white/10 p-1 bg-white shadow-xl">
+            <img
+              src="/logo.jpg"
+              alt="Logo AI GIÁ SỈ"
+              className="w-full h-full object-contain"
+            />
           </div>
           <h1
             className="text-2xl font-bold text-white tracking-tight"
             style={{ fontFamily: "'Space Grotesk', sans-serif" }}
           >
-            OpenLay Admin
+            AI GIÁ SỈ Admin
           </h1>
           <p className="text-sm text-slate-400 mt-2">
             Đăng nhập hệ thống quản lý nội dung số

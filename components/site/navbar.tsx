@@ -2,11 +2,11 @@
 
 // ============================================================
 // components/site/navbar.tsx
-// Thanh điều hướng Header cố định phong cách Cyber-clean Linear
+// Thanh điều hướng Header cố định với Logo AI GIÁ SỈ
 // ============================================================
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { ShieldCheck, UserCog, ArrowUpRight, Menu, X } from 'lucide-react'
+import { UserCog, ArrowUpRight, Menu, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface NavbarProps {
@@ -31,49 +31,51 @@ export function Navbar({ zaloLink, shopName }: NavbarProps) {
       className={cn(
         'fixed top-0 left-0 right-0 z-40 transition-all duration-300',
         scrolled
-          ? 'bg-[#0A0A0F]/80 backdrop-blur-xl border-b border-white/5 py-3.5 shadow-2xl shadow-black/50'
-          : 'bg-transparent py-5'
+          ? 'bg-[#0A0A0F]/85 backdrop-blur-xl border-b border-white/5 py-3 shadow-2xl shadow-black/60'
+          : 'bg-transparent py-4 sm:py-5'
       )}
     >
       <div className="container mx-auto px-4 flex items-center justify-between">
-        {/* Brand Logo */}
-        <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-violet-600 to-cyan-500 p-[1px] group-hover:shadow-lg group-hover:shadow-violet-500/20 transition-all">
-            <div className="w-full h-full bg-[#0A0A0F] rounded-xl flex items-center justify-center font-bold text-white text-base">
-              OL
-            </div>
+        {/* Brand Logo & Name */}
+        <Link href="/" className="flex items-center gap-3 group">
+          <div className="w-10 h-10 rounded-xl overflow-hidden border border-white/10 p-0.5 bg-white group-hover:border-emerald-500/40 transition-colors shrink-0">
+            <img
+              src="/logo.jpg"
+              alt="Logo AI GIÁ SỈ"
+              className="w-full h-full object-contain"
+            />
           </div>
           <span
-            className="text-lg font-bold text-white tracking-tight"
+            className="text-lg sm:text-xl font-extrabold text-white tracking-tight"
             style={{ fontFamily: "'Space Grotesk', sans-serif" }}
           >
-            {shopName || 'OpenLay'}
+            {shopName || 'AI GIÁ SỈ'}
           </span>
         </Link>
 
         {/* Desktop Nav Links */}
-        <nav className="hidden md:flex items-center gap-7">
+        <nav className="hidden md:flex items-center gap-8">
           <Link
             href="/#san-pham"
-            className="text-sm font-medium text-slate-400 hover:text-white transition-colors"
+            className="text-sm font-medium text-slate-300 hover:text-white transition-colors"
           >
             Gói dịch vụ
           </Link>
           <Link
             href="/#tai-sao-chon-chung-toi"
-            className="text-sm font-medium text-slate-400 hover:text-white transition-colors"
+            className="text-sm font-medium text-slate-300 hover:text-white transition-colors"
           >
             Cam kết
           </Link>
           <Link
             href="/#faq"
-            className="text-sm font-medium text-slate-400 hover:text-white transition-colors"
+            className="text-sm font-medium text-slate-300 hover:text-white transition-colors"
           >
             FAQ
           </Link>
           <Link
             href="/lien-he"
-            className="text-sm font-medium text-slate-400 hover:text-white transition-colors"
+            className="text-sm font-medium text-slate-300 hover:text-white transition-colors"
           >
             Liên hệ Zalo
           </Link>

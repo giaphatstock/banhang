@@ -115,7 +115,7 @@ export default async function AdminDashboardPage() {
             Bảng điều khiển
           </h1>
           <p className="text-sm text-slate-400 mt-1">
-            Tổng hợp dữ liệu kinh doanh và tương tác khách hàng của OpenLay.
+            Tổng hợp dữ liệu kinh doanh và tương tác khách hàng của AI GIÁ SỈ.
           </p>
         </div>
 

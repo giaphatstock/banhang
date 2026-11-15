@@ -34,7 +34,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: `${product.name} - ${formatVND(product.price)}`,
     description: product.description || `Mua ${product.name} với giá ${formatVND(product.price)}. Bảo hành uy tín, hỗ trợ 24/7 qua Zalo.`,
     openGraph: {
-      title: `${product.name} | OpenLay`,
+      title: `${product.name} | AI GIÁ SỈ`,
       description: product.description || `Mua ${product.name} với giá ${formatVND(product.price)}.`,
     },
   }

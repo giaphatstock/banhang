@@ -8,8 +8,8 @@ import { createClient } from '@/lib/supabase/server'
 import { ZaloQRCode } from '@/components/site/zalo-qr'
 
 export const metadata: Metadata = {
-  title: 'Liên hệ | OpenLay',
-  description: 'Liên hệ OpenLay qua Zalo để được hỗ trợ mua tài khoản số nhanh nhất.',
+  title: 'Liên hệ | AI GIÁ SỈ',
+  description: 'Liên hệ AI GIÁ SỈ qua Zalo để được hỗ trợ mua tài khoản số nhanh nhất.',
 }
 
 export const revalidate = 300
@@ -22,10 +22,10 @@ export default async function ContactPage() {
   const settingsMap: Record<string, string> = {}
   settings?.forEach((s) => { if (s.key && s.value) settingsMap[s.key] = s.value })
 
-  const zaloPhone = settingsMap.zalo_phone || process.env.NEXT_PUBLIC_ZALO_PHONE || ''
+  const zaloPhone = settingsMap.zalo_phone || process.env.NEXT_PUBLIC_ZALO_PHONE || '0764894250'
   const zaloLink = settingsMap.zalo_link || `https://zalo.me/${zaloPhone}`
   const contactEmail = settingsMap.contact_email || ''
-  const shopName = settingsMap.shop_name || 'OpenLay'
+  const shopName = settingsMap.shop_name || 'AI GIÁ SỈ'
   const shopDescription = settingsMap.shop_description || ''
 
   return (

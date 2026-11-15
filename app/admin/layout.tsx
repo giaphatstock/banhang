@@ -2,8 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { AdminSidebar } from '@/components/admin/admin-sidebar'
 
 export const metadata = {
-  title: 'Bảng Điều Khiển Quản Trị | OpenLay',
-  description: 'Quản lý toàn bộ gói dịch vụ, khách hàng và cấu hình hệ thống OpenLay.',
+  title: 'Bảng Điều Khiển Quản Trị | AI GIÁ SỈ',
+  description: 'Quản lý toàn bộ gói dịch vụ, khách hàng và cấu hình hệ thống AI GIÁ SỈ.',
 }
 
 export default async function AdminLayout({

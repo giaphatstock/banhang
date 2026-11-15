@@ -14,14 +14,15 @@ const inter = Inter({
 export const metadata: Metadata = {
   metadataBase: new URL(getBaseUrl()),
   title: {
-    default: 'OpenLay - Tài khoản số chính hãng, bảo hành uy tín',
-    template: '%s | OpenLay',
+    default: 'AI GIÁ SỈ - Tài khoản số chính hãng, bảo hành uy tín',
+    template: '%s | AI GIÁ SỈ',
   },
   description:
-    'Mua tài khoản Gemini, ChatGPT, Netflix, Spotify, Canva, CapCut và nhiều dịch vụ số cao cấp với giá tốt nhất. Bảo hành uy tín, hỗ trợ 24/7 qua Zalo.',
+    'Mua tài khoản Gemini, ChatGPT, Netflix, Spotify, Canva, CapCut và nhiều dịch vụ số cao cấp với giá sỉ tốt nhất. Bảo hành uy tín, hỗ trợ 24/7 qua Zalo.',
   keywords: [
-    'tài khoản số',
-    'mua tài khoản',
+    'AI GIÁ SỈ',
+    'tài khoản số giá sỉ',
+    'mua tài khoản AI',
     'Gemini Advanced',
     'ChatGPT Plus',
     'Netflix Premium',
@@ -29,12 +30,11 @@ export const metadata: Metadata = {
     'Canva Pro',
     'CapCut Pro',
     'subscription',
-    'digital account',
   ],
   openGraph: {
     type: 'website',
     locale: 'vi_VN',
-    siteName: 'OpenLay',
+    siteName: 'AI GIÁ SỈ',
   },
   robots: {
     index: true,

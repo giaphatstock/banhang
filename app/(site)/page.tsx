@@ -14,9 +14,9 @@ import { Footer } from '@/components/site/footer'
 import type { Category, Product, SiteSettingsObject } from '@/lib/types'
 
 export const metadata: Metadata = {
-  title: 'Tài khoản số chính hãng, bảo hành uy tín | OpenLay',
+  title: 'AI GIÁ SỈ - Tài khoản số chính hãng, bảo hành uy tín',
   description:
-    'Mua tài khoản Gemini, ChatGPT, Netflix, Spotify, Canva, CapCut và nhiều dịch vụ số cao cấp. Bảo hành uy tín, hỗ trợ 24/7 qua Zalo.',
+    'Mua tài khoản Gemini, ChatGPT, Netflix, Spotify, Canva, CapCut và nhiều dịch vụ số cao cấp với giá sỉ tốt nhất. Bảo hành uy tín, hỗ trợ 24/7 qua Zalo.',
 }
 
 export const revalidate = 60
@@ -214,7 +214,7 @@ async function getSiteSettings(): Promise<Partial<SiteSettingsObject>> {
       return {
         zalo_phone: process.env.NEXT_PUBLIC_ZALO_PHONE || '0764894250',
         zalo_link: `https://zalo.me/${process.env.NEXT_PUBLIC_ZALO_PHONE || '0764894250'}`,
-        shop_name: 'OpenLay',
+        shop_name: 'AI GIÁ SỈ',
       }
     }
 
@@ -228,17 +228,17 @@ async function getSiteSettings(): Promise<Partial<SiteSettingsObject>> {
     return {
       zalo_phone: settings.zalo_phone || process.env.NEXT_PUBLIC_ZALO_PHONE || '0764894250',
       zalo_link: settings.zalo_link || `https://zalo.me/${settings.zalo_phone || process.env.NEXT_PUBLIC_ZALO_PHONE || '0764894250'}`,
-      shop_name: settings.shop_name || 'OpenLay',
-      contact_email: settings.contact_email || 'contact@openlay.vn',
+      shop_name: settings.shop_name || 'AI GIÁ SỈ',
+      contact_email: settings.contact_email || 'contact@aigiasi.vn',
       facebook_link: settings.facebook_link || '',
       telegram_link: settings.telegram_link || '',
-      shop_description: settings.shop_description || 'Cung cấp tài khoản số chính hãng, bảo hành uy tín',
+      shop_description: settings.shop_description || 'Chuyên cung cấp tài khoản AI, bản quyền số giá sỉ uy tín',
     }
   } catch {
     return {
       zalo_phone: process.env.NEXT_PUBLIC_ZALO_PHONE || '0764894250',
       zalo_link: `https://zalo.me/${process.env.NEXT_PUBLIC_ZALO_PHONE || '0764894250'}`,
-      shop_name: 'OpenLay',
+      shop_name: 'AI GIÁ SỈ',
     }
   }
 }

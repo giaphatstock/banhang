@@ -44,14 +44,16 @@ export function AdminSidebar({ userEmail }: AdminSidebarProps) {
         {/* Brand */}
         <div className="flex items-center justify-between mb-8 px-2">
           <Link href="/admin" className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-violet-600 to-cyan-500 p-[1px]">
-              <div className="w-full h-full bg-[#0F0F1A] rounded-xl flex items-center justify-center font-bold text-white text-base">
-                OL
-              </div>
+            <div className="w-10 h-10 rounded-xl overflow-hidden border border-white/10 p-0.5 bg-white shrink-0">
+              <img
+                src="/logo.jpg"
+                alt="Logo AI GIÁ SỈ"
+                className="w-full h-full object-contain"
+              />
             </div>
             <div>
               <span className="font-bold text-white text-base tracking-tight block" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                OpenLay
+                AI GIÁ SỈ
               </span>
               <span className="text-[11px] text-violet-400 font-medium tracking-wider uppercase">
                 Admin Panel
@@ -134,10 +136,10 @@ export function AdminSidebar({ userEmail }: AdminSidebarProps) {
       {/* Mobile Top Bar */}
       <div className="md:hidden flex items-center justify-between p-4 bg-[#0F0F1A] border-b border-white/5">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-violet-600 flex items-center justify-center font-bold text-xs text-white">
-            OL
+          <div className="w-8 h-8 rounded-lg overflow-hidden border border-white/10 p-0.5 bg-white shrink-0">
+            <img src="/logo.jpg" alt="Logo" className="w-full h-full object-contain" />
           </div>
-          <span className="font-bold text-sm text-white">OpenLay Admin</span>
+          <span className="font-bold text-sm text-white">AI GIÁ SỈ Admin</span>
         </div>
         <button
           onClick={() => setMobileOpen(true)}
