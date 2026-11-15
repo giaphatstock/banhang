@@ -11,27 +11,58 @@ export const productSchema = z.object({
   slug: z
     .string()
     .min(2, 'Slug phải có ít nhất 2 ký tự')
-    .max(100, 'Slug không được quá 100 ký tự')
-    .regex(/^[a-z0-9-]+$/, 'Slug chỉ được chứa chữ thường, số và dấu gạch ngang'),
-  category_id: z.string().uuid('Danh mục không hợp lệ').nullable().optional(),
-  description: z.string().max(500, 'Mô tả không được quá 500 ký tự').nullable().optional(),
-  benefits: z.array(z.string().min(1, 'Quyền lợi không được trống')).max(10, 'Tối đa 10 quyền lợi').optional(),
-  price: z
-    .number()
-    .min(1000, 'Giá tối thiểu 1.000đ')
-    .max(100000000, 'Giá tối đa 100 triệu'),
-  original_price: z
-    .number()
-    .min(1000, 'Giá gốc tối thiểu 1.000đ')
+    .max(100, 'Slug không được quá 100 ký tự'),
+  category_id: z
+    .string()
     .nullable()
-    .optional(),
-  duration: z.string().max(50, 'Thời hạn không được quá 50 ký tự').nullable().optional(),
-  warranty: z.string().max(100, 'Bảo hành không được quá 100 ký tự').nullable().optional(),
-  badge: z.enum(['Best Seller', 'Hot', 'Khuyến mãi']).nullable().optional(),
-  note: z.string().max(500, 'Lưu ý không được quá 500 ký tự').nullable().optional(),
+    .optional()
+    .transform((val) => (val && val.trim() ? val.trim() : null)),
+  description: z
+    .string()
+    .max(1000, 'Mô tả không được quá 1000 ký tự')
+    .nullable()
+    .optional()
+    .transform((val) => (val && val.trim() ? val.trim() : null)),
+  benefits: z
+    .array(z.string())
+    .nullable()
+    .optional()
+    .transform((val) => (val ? val.filter((b) => b && b.trim()) : [])),
+  price: z.coerce
+    .number()
+    .min(0, 'Giá sản phẩm tối thiểu 0đ')
+    .max(100000000, 'Giá tối đa 100 triệu'),
+  original_price: z.coerce
+    .number()
+    .nullable()
+    .optional()
+    .transform((val) => (val && val > 0 ? val : null)),
+  duration: z
+    .string()
+    .max(100, 'Thời hạn không được quá 100 ký tự')
+    .nullable()
+    .optional()
+    .transform((val) => (val && val.trim() ? val.trim() : null)),
+  warranty: z
+    .string()
+    .max(150, 'Bảo hành không được quá 150 ký tự')
+    .nullable()
+    .optional()
+    .transform((val) => (val && val.trim() ? val.trim() : null)),
+  badge: z
+    .string()
+    .nullable()
+    .optional()
+    .transform((val) => (val && val.trim() ? val.trim() : null)),
+  note: z
+    .string()
+    .max(1000, 'Lưu ý không được quá 1000 ký tự')
+    .nullable()
+    .optional()
+    .transform((val) => (val && val.trim() ? val.trim() : null)),
   is_active: z.boolean().default(true),
   is_featured: z.boolean().default(false),
-  sort_order: z.number().int().min(0).default(0),
+  sort_order: z.coerce.number().int().min(0).default(0),
 })
 
 export type ProductFormData = z.infer<typeof productSchema>

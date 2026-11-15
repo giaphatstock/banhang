@@ -103,7 +103,7 @@ export async function createProduct(data: ProductFormData) {
     return { error: parsed.error.issues?.[0]?.message || 'Dữ liệu không hợp lệ.' }
   }
 
-  const supabase = await createClient()
+  const supabase = await createAdminClient()
   const { error } = await supabase.from('products').insert([parsed.data])
 
   if (error) {
@@ -121,14 +121,19 @@ export async function updateProduct(id: string, data: ProductFormData) {
     return { error: parsed.error.issues?.[0]?.message || 'Dữ liệu không hợp lệ.' }
   }
 
-  const supabase = await createClient()
-  const { error } = await supabase
+  const supabase = await createAdminClient()
+  const { data: updated, error } = await supabase
     .from('products')
     .update(parsed.data)
     .eq('id', id)
+    .select()
 
   if (error) {
     return { error: 'Không thể cập nhật sản phẩm: ' + error.message }
+  }
+
+  if (!updated || updated.length === 0) {
+    return { error: 'Không tìm thấy sản phẩm để cập nhật.' }
   }
 
   revalidatePath('/')
@@ -138,7 +143,7 @@ export async function updateProduct(id: string, data: ProductFormData) {
 }
 
 export async function toggleProductActive(id: string, is_active: boolean) {
-  const supabase = await createClient()
+  const supabase = await createAdminClient()
   const { error } = await supabase
     .from('products')
     .update({ is_active })
@@ -154,7 +159,7 @@ export async function toggleProductActive(id: string, is_active: boolean) {
 }
 
 export async function deleteProduct(id: string) {
-  const supabase = await createClient()
+  const supabase = await createAdminClient()
   const { error } = await supabase.from('products').delete().eq('id', id)
 
   if (error) {
@@ -176,7 +181,7 @@ export async function createCategory(data: CategoryFormData) {
     return { error: parsed.error.issues?.[0]?.message || 'Dữ liệu không hợp lệ.' }
   }
 
-  const supabase = await createClient()
+  const supabase = await createAdminClient()
   const { error } = await supabase.from('categories').insert([parsed.data])
 
   if (error) {
@@ -194,7 +199,7 @@ export async function updateCategory(id: string, data: CategoryFormData) {
     return { error: parsed.error.issues?.[0]?.message || 'Dữ liệu không hợp lệ.' }
   }
 
-  const supabase = await createClient()
+  const supabase = await createAdminClient()
   const { error } = await supabase
     .from('categories')
     .update(parsed.data)
@@ -210,7 +215,7 @@ export async function updateCategory(id: string, data: CategoryFormData) {
 }
 
 export async function deleteCategory(id: string) {
-  const supabase = await createClient()
+  const supabase = await createAdminClient()
   const { error } = await supabase.from('categories').delete().eq('id', id)
 
   if (error) {
@@ -231,7 +236,7 @@ export async function updateCustomerStatusAndNote(
   status: CustomerStatus,
   note: string | null
 ) {
-  const supabase = await createClient()
+  const supabase = await createAdminClient()
   const { error } = await supabase
     .from('customers')
     .update({ status, note })
@@ -247,7 +252,7 @@ export async function updateCustomerStatusAndNote(
 }
 
 export async function deleteCustomer(id: string) {
-  const supabase = await createClient()
+  const supabase = await createAdminClient()
   const { error } = await supabase.from('customers').delete().eq('id', id)
 
   if (error) {
@@ -269,7 +274,7 @@ export async function updateSettings(data: SettingsFormData) {
     return { error: parsed.error.issues?.[0]?.message || 'Dữ liệu không hợp lệ.' }
   }
 
-  const supabase = await createClient()
+  const supabase = await createAdminClient()
 
   // Upsert các key vào bảng site_settings
   const updates = Object.entries(parsed.data).map(([key, value]) => ({
@@ -302,7 +307,7 @@ export async function addAdminUser(email: string, note?: string) {
     return { error: 'Email không hợp lệ.' }
   }
 
-  const supabase = await createClient()
+  const supabase = await createAdminClient()
   const { error } = await supabase.from('admin_users').insert([
     {
       email: cleanEmail,
@@ -323,7 +328,7 @@ export async function addAdminUser(email: string, note?: string) {
 }
 
 export async function deleteAdminUser(id: string) {
-  const supabase = await createClient()
+  const supabase = await createAdminClient()
   const { error } = await supabase.from('admin_users').delete().eq('id', id)
 
   if (error) {

@@ -179,103 +179,112 @@ INSERT INTO products (
   price, original_price, duration, warranty, badge,
   note, is_active, is_featured, sort_order
 ) VALUES
--- 1. Gemini 18 tháng
+-- 1. Gemini Pro 18 tháng
 (
-  'Gemini Advanced 18 Tháng',
-  'gemini-advanced-18-thang',
+  'Gemini Pro + 5TB Google Drive (18 Tháng)',
+  'gemini-pro-5tb-google-drive-18-thang',
   '11111111-1111-1111-1111-111111111111',
-  'Trải nghiệm Gemini Advanced với 1.5 Pro, 5TB Google Drive và toàn bộ tính năng Google One Premium.',
-  '["Gemini Advanced (mô hình 1.5 Pro)", "5TB Google Drive", "Google One Premium", "Dùng được trên mọi thiết bị", "Tích hợp Gmail, Docs, Sheets"]',
-  220000, 350000, '18 tháng', 'Bảo hành 7 ngày đầu', 'Khuyến mãi',
-  'Không cam kết đủ 18 tháng, có thể bị Google quét về Free, bảo hành 7 ngày đầu',
+  'Nâng cấp chính chủ qua Family Link, mở khóa trọn bộ tính năng Gemini Pro kèm 5TB Google Drive lưu trữ tốc độ cao.',
+  '["Mở khóa trọn bộ tính năng Gemini Pro", "Tặng kèm 5TB (5.000GB) dung lượng Google Drive", "Nâng cấp chính chủ qua lời mời nhóm Family Link", "Hoạt động độc lập, bảo mật dữ liệu tuyệt đối", "Nhận link tham gia & kiểm tra OK mới thanh toán"]',
+  220000, 350000,
+  '18 tháng', 'Bảo hành 7 ngày đầu', 'Khuyến mãi',
+  'Không nhận Gmail mới tạo. Đây là gói khuyến mại từ Google nên không cam kết dùng trọn 18 tháng (có rủi ro Google quét về Free), cam kết không kick thành viên.',
   true, true, 1
 ),
--- 2. Gemini 8 tháng
+-- 2. Gemini Pro 8 tháng
 (
-  'Gemini Advanced 8 Tháng',
-  'gemini-advanced-8-thang',
+  'Gemini Pro + 5TB Google Drive (8 Tháng)',
+  'gemini-pro-5tb-google-drive-8-thang',
   '11111111-1111-1111-1111-111111111111',
-  'Gói Gemini Advanced ổn định 8 tháng với bảo hành toàn thời gian sử dụng.',
-  '["Gemini Advanced (mô hình 1.5 Pro)", "5TB Google Drive", "Google One Premium", "Bảo hành full 8 tháng", "Hỗ trợ 24/7"]',
-  439000, 600000, '8 tháng', 'Bảo hành full 8 tháng', 'Best Seller',
-  NULL,
+  'Gói nâng cấp chính chủ ổn định cao qua Family Link, sở hữu trọn bộ tính năng Gemini Pro và 5TB Google Drive dùng đủ thời hạn.',
+  '["Mở khóa trọn bộ tính năng Gemini Pro", "Tặng kèm 5TB (5.000GB) dung lượng Google Drive", "Cam kết sử dụng ổn định đủ 8 tháng", "Hoạt động độc lập, riêng tư và bảo mật tuyệt đối", "Kiểm tra nâng cấp thành công rồi mới chuyển khoản"]',
+  439000, 550000,
+  '8 tháng', 'Bảo hành Full 8 tháng', 'Ổn định / Khuyên dùng',
+  'Chỉ cần gửi địa chỉ Gmail để nhận link mời. Không áp dụng nâng cấp cho tài khoản Gmail mới tạo.',
   true, true, 2
 ),
 -- 3. ChatGPT Go 1 tháng
 (
-  'ChatGPT Go 1 Tháng',
+  'ChatGPT Go (1 Tháng)',
   'chatgpt-go-1-thang',
   '11111111-1111-1111-1111-111111111111',
-  'Gói ChatGPT Go hàng tháng, truy cập GPT-4o Mini và các tính năng cơ bản.',
-  '["Truy cập GPT-4o Mini", "Tốc độ phản hồi nhanh", "Dùng trên web và mobile", "Bảo hành full 1 tháng", "Hỗ trợ kỹ thuật"]',
-  230000, NULL, '1 tháng', 'Bảo hành full 1 tháng', NULL,
-  NULL,
+  'Trải nghiệm trợ lý AI thông minh ChatGPT phục vụ học tập, viết lách và xử lý công việc hàng ngày với chi phí tối ưu.',
+  '["Truy cập các mô hình AI tiên tiến của OpenAI", "Tốc độ phản hồi nhanh, hạn chế gián đoạn giờ cao điểm", "Hỗ trợ đa tác vụ: soạn thảo, tóm tắt, dịch thuật, lập trình", "Dùng ổn định trên cả trình duyệt web và ứng dụng điện thoại"]',
+  230000, 300000,
+  '1 tháng', 'Bảo hành Full thời gian sử dụng', 'Tiết kiệm',
+  'Bảo hành trọn vẹn 1 tháng sử dụng. Vui lòng không tự ý thay đổi thông tin bảo mật của tài khoản được cấp.',
   true, false, 3
 ),
 -- 4. ChatGPT Plus 1 tháng
 (
-  'ChatGPT Plus 1 Tháng',
+  'ChatGPT Plus (1 Tháng)',
   'chatgpt-plus-1-thang',
   '11111111-1111-1111-1111-111111111111',
-  'ChatGPT Plus đầy đủ tính năng với GPT-4o, DALL-E 3 và các plugin cao cấp.',
-  '["Truy cập GPT-4o (full speed)", "DALL-E 3 tạo ảnh AI", "Tất cả Plugin cao cấp", "Bảo hành full 1 tháng", "Hỗ trợ 24/7"]',
-  370000, 500000, '1 tháng', 'Bảo hành full 1 tháng', 'Hot',
-  NULL,
+  'Mở khóa sức mạnh tối đa của OpenAI với ChatGPT Plus: truy cập mô hình mới nhất, tạo ảnh, phân tích dữ liệu chuyên sâu.',
+  '["Mở khóa toàn bộ các mô hình cao cấp nhất của OpenAI", "Tạo hình ảnh AI sắc nét, đọc và phân tích file dữ liệu lớn", "Ưu tiên tốc độ xử lý siêu tốc ngay cả trong giờ cao điểm", "Sử dụng tính năng trò chuyện giọng nói nâng cao (Advanced Voice)"]',
+  370000, 520000,
+  '1 tháng', 'Bảo hành Full thời gian sử dụng', 'Bán chạy',
+  'Bảo hành Full suốt 1 tháng sử dụng. Tuân thủ quy định số lượng thiết bị đăng nhập theo hướng dẫn khi nhận tài khoản.',
   true, true, 4
 ),
 -- 5. Netflix 4K Premium
 (
-  'Netflix 4K Premium 1 Tháng',
-  'netflix-4k-premium-1-thang',
+  'Netflix 4K Premium (Slot 1 Tháng)',
+  'netflix-4k-premium-slot-1-thang',
   '22222222-2222-2222-2222-222222222222',
-  'Netflix Premium 4K Ultra HD, xem trên 4 màn hình cùng lúc, không giới hạn nội dung.',
-  '["Chất lượng 4K Ultra HD + HDR", "Xem trên 4 màn hình đồng thời", "Tải xuống xem offline", "Bảo hành full 1 tháng", "Hàng triệu nội dung"]',
-  240000, 300000, '1 tháng', 'Bảo hành full 1 tháng', 'Hot',
-  NULL,
-  true, false, 5
+  'Thưởng thức kho phim bom tấn độc quyền chuẩn hình ảnh Ultra HD 4K sắc nét và âm thanh sống động trên mọi thiết bị.',
+  '["Chất lượng hình ảnh cao nhất: Ultra HD 4K + HDR", "Hỗ trợ âm thanh vòm không gian sống động", "Hồ sơ (Profile) riêng tư có mã PIN bảo vệ", "Tải phim về thiết bị để xem ngoại tuyến không cần mạng"]',
+  240000, 260000,
+  '1 tháng', 'Bảo hành Full 1 tháng', 'Hot',
+  'Gói cấp 1 Slot sử dụng riêng. Không tự ý đổi mật khẩu tài khoản hoặc xâm phạm sang hồ sơ của thành viên khác.',
+  true, true, 5
 ),
 -- 6. YouTube Premium Family
 (
-  'YouTube Premium Family 3 Tháng',
+  'YouTube Premium Family (3 Tháng)',
   'youtube-premium-family-3-thang',
   '22222222-2222-2222-2222-222222222222',
-  'YouTube Premium Family cho cả gia đình, không quảng cáo, tải nhạc offline và YouTube Music.',
-  '["Xem không quảng cáo", "YouTube Music Premium", "Tải video/nhạc offline", "Cho tối đa 5 thành viên", "Bảo hành full 3 tháng"]',
-  300000, 400000, '3 tháng', 'Bảo hành full 3 tháng', 'Best Seller',
-  NULL,
+  'Xem video YouTube không quảng cáo, phát nhạc nền khi tắt màn hình và tặng kèm trọn bộ YouTube Music Premium trên chính Gmail của bạn.',
+  '["Chặn 100% quảng cáo khi xem video trên mọi thiết bị", "Hỗ trợ phát video trong nền khi tắt màn hình điện thoại", "Tải video chất lượng cao về máy xem offline", "Tặng kèm kho nhạc bản quyền YouTube Music Premium", "Nâng cấp trực tiếp trên Gmail cá nhân qua nhóm Family cố định"]',
+  300000, 390000,
+  '3 tháng', 'Bảo hành Full 3 tháng', 'Ổn định',
+  'Bảo hành Full 3 tháng. Tài khoản Google của bạn cần đảm bảo chưa tham gia hoặc chuyển đổi nhóm Family quá 2 lần trong 12 tháng qua.',
   true, false, 6
 ),
 -- 7. Spotify Premium
 (
-  'Spotify Premium 3 Tháng',
-  'spotify-premium-3-thang',
+  'Spotify Premium Link Kích Hoạt (3 Tháng)',
+  'spotify-premium-link-kich-hoat-3-thang',
   '22222222-2222-2222-2222-222222222222',
-  'Nghe nhạc không giới hạn, không quảng cáo, chất lượng cao nhất với Spotify Premium.',
-  '["Nghe nhạc không quảng cáo", "Tải nhạc offline không giới hạn", "Chất lượng âm thanh cao", "Shuffle tự do mọi bài hát", "Hỗ trợ toàn cầu"]',
-  235000, NULL, '3 tháng', 'Không bảo hành', NULL,
-  NULL,
+  'Nghe nhạc bản quyền chất lượng cao không quảng cáo, tải nhạc offline và tự do chuyển bài không giới hạn bằng link kích hoạt chính chủ.',
+  '["Nghe nhạc không bị làm phiền bởi quảng cáo", "Chất lượng âm thanh cao lên đến 320kbps", "Tải xuống bài hát và podcast để nghe ngoại tuyến", "Kích hoạt trực tiếp vào tài khoản cá nhân, giữ nguyên playlist cũ"]',
+  235000, 300000,
+  '3 tháng', 'Không bảo hành', 'Giá tốt',
+  'Đây là gói kích hoạt qua link ưu đãi nên KHÔNG áp dụng chính sách bảo hành sau khi kích hoạt thành công.',
   true, false, 7
 ),
 -- 8. Canva Pro
 (
-  'Canva Pro 12 Tháng',
-  'canva-pro-12-thang',
+  'Canva Pro (Slot 12 Tháng)',
+  'canva-pro-slot-12-thang',
   '33333333-3333-3333-3333-333333333333',
-  'Canva Pro slot 12 tháng với toàn bộ template premium, background remover và Brand Kit.',
-  '["100M+ template và element premium", "Background Remover tự động", "Brand Kit cá nhân hóa", "100GB cloud storage", "Bảo hành full 12 tháng"]',
-  250000, 350000, '12 tháng', 'Bảo hành full 12 tháng', 'Best Seller',
-  NULL,
+  'Mở khóa kho tài nguyên hơn 100 triệu ảnh, video, mẫu thiết kế cao cấp cùng bộ công cụ AI xóa phông, đổi kích thước chỉ với 1 click.',
+  '["Mở khóa toàn bộ mẫu thiết kế, font chữ và đồ họa Pro", "Công cụ xóa phông nền ảnh & video tự động bằng AI", "Đổi kích thước thiết kế đa nền tảng (Magic Switch) trong 1 giây", "Nâng cấp trực tiếp trên tài khoản Canva cá nhân của bạn"]',
+  250000, 1200000,
+  '12 tháng', 'Bảo hành Full 12 tháng', 'Tiết kiệm nhất',
+  'Bảo hành Full 12 tháng sử dụng. Vui lòng lưu trữ thiết kế cá nhân ở thư mục riêng tư trong nhóm để đảm bảo bảo mật.',
   true, true, 8
 ),
 -- 9. CapCut Pro
 (
-  'CapCut Pro 30 Ngày',
-  'capcut-pro-30-ngay',
+  'CapCut Pro Tài Khoản Cá Nhân (30 Ngày)',
+  'capcut-pro-tai-khoan-ca-nhan-30-ngay',
   '33333333-3333-3333-3333-333333333333',
-  'CapCut Pro với tất cả hiệu ứng premium, AI tools và xuất video không watermark.',
-  '["Xuất video không watermark", "AI Background remover", "Tất cả hiệu ứng và filter premium", "AI Script to Video", "Tốc độ render nhanh"]',
-  210000, NULL, '30 ngày', 'Không bảo hành lỗi thiết bị', NULL,
-  'Không bảo hành lỗi thiết bị hoặc bảo mật từ người dùng',
+  'Trải nghiệm trọn bộ hiệu ứng, bộ lọc, phụ đề tự động AI và xuất video 4K 60fps không dính logo trên tài khoản CapCut Pro dùng riêng.',
+  '["Mở khóa toàn bộ hiệu ứng, chuyển cảnh, sticker và bộ lọc Pro", "Tạo phụ đề tự động AI, tách nền video và làm mịn da thông minh", "Xuất video chất lượng cao lên đến 4K 60fps, không watermark", "Tài khoản sử dụng riêng biệt, đồng bộ dự án trên điện thoại và PC"]',
+  210000, 290000,
+  '30 ngày', 'Bảo hành lỗi tài khoản (có điều kiện)', 'Chính chủ',
+  'Không bảo hành các lỗi phát sinh do đăng nhập vượt quá giới hạn thiết bị quy định hoặc các lỗi bảo mật từ phía người dùng.',
   true, false, 9
 )
 ON CONFLICT (slug) DO NOTHING;

@@ -137,19 +137,22 @@ export function ProductManager({ initialProducts, categories }: ProductManagerPr
 
     const payload: ProductFormData = {
       name: name.trim(),
-      slug: slug.trim(),
-      category_id: categoryId || null,
+      slug: slug.trim().toLowerCase(),
+      category_id: categoryId && categoryId.trim() ? categoryId.trim() : null,
       description: description.trim() || null,
-      benefits: cleanBenefits.length > 0 ? cleanBenefits : undefined,
-      price: Number(price),
-      original_price: originalPrice ? Number(originalPrice) : null,
+      benefits: cleanBenefits.length > 0 ? cleanBenefits : [],
+      price: isNaN(Number(price)) ? 0 : Number(price),
+      original_price:
+        originalPrice && !isNaN(Number(originalPrice)) && Number(originalPrice) > 0
+          ? Number(originalPrice)
+          : null,
       duration: duration.trim() || null,
       warranty: warranty.trim() || null,
-      badge: (badge as any) || null,
+      badge: badge && badge.trim() ? badge.trim() : null,
       note: note.trim() || null,
       is_active: isActive,
       is_featured: isFeatured,
-      sort_order: Number(sortOrder),
+      sort_order: isNaN(Number(sortOrder)) ? 0 : Number(sortOrder),
     }
 
     startTransition(async () => {
