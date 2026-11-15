@@ -69,6 +69,30 @@ export async function logoutAdmin() {
   redirect('/admin/login')
 }
 
+export async function updateAdminPassword(formData: FormData) {
+  const newPassword = formData.get('newPassword') as string
+  const confirmPassword = formData.get('confirmPassword') as string
+
+  if (!newPassword || newPassword.length < 6) {
+    return { error: 'Mật khẩu mới phải có ít nhất 6 ký tự.' }
+  }
+
+  if (newPassword !== confirmPassword) {
+    return { error: 'Mật khẩu xác nhận không khớp.' }
+  }
+
+  const supabase = await createClient()
+  const { error } = await supabase.auth.updateUser({
+    password: newPassword,
+  })
+
+  if (error) {
+    return { error: 'Không thể đổi mật khẩu: ' + error.message }
+  }
+
+  return { success: true }
+}
+
 // ------------------------------------------------------------
 // PRODUCT ACTIONS
 // ------------------------------------------------------------

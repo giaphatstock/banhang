@@ -18,8 +18,9 @@ import {
   Shield,
   UserPlus,
   Trash2,
+  KeyRound,
 } from 'lucide-react'
-import { updateSettings, addAdminUser, deleteAdminUser } from '@/app/admin/actions'
+import { updateSettings, addAdminUser, deleteAdminUser, updateAdminPassword } from '@/app/admin/actions'
 import type { SiteSettingsObject, AdminUser } from '@/lib/types'
 import type { SettingsFormData } from '@/lib/validations/settings'
 import { toast } from 'sonner'
@@ -36,6 +37,9 @@ export function SettingsManager({ initialSettings, initialAdminUsers = [] }: Set
   const [newAdminNote, setNewAdminNote] = useState('')
   const [isPending, startTransition] = useTransition()
   const [isAddingAdmin, setIsAddingAdmin] = useState(false)
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [isChangingPassword, setIsChangingPassword] = useState(false)
 
   const handleChange = (field: keyof SiteSettingsObject, val: string) => {
     setFormData((prev) => {
@@ -110,6 +114,34 @@ export function SettingsManager({ initialSettings, initialAdminUsers = [] }: Set
     } else {
       toast.success(`Đã xóa ${email} khỏi danh sách admin`)
       setAdminUsers((prev) => prev.filter((a) => a.id !== id))
+    }
+  }
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newPassword || newPassword.length < 6) {
+      toast.error('Mật khẩu mới phải có ít nhất 6 ký tự.')
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error('Mật khẩu xác nhận không khớp.')
+      return
+    }
+
+    setIsChangingPassword(true)
+    const fd = new FormData()
+    fd.append('newPassword', newPassword)
+    fd.append('confirmPassword', confirmPassword)
+
+    const res = await updateAdminPassword(fd)
+    setIsChangingPassword(false)
+
+    if (res.error) {
+      toast.error(res.error)
+    } else {
+      toast.success('Đổi mật khẩu tài khoản thành công!')
+      setNewPassword('')
+      setConfirmPassword('')
     }
   }
 
@@ -402,6 +434,71 @@ export function SettingsManager({ initialSettings, initialAdminUsers = [] }: Set
             ))}
           </div>
         </div>
+      </div>
+
+      {/* Card 5: Đổi Mật Khẩu Admin đang đăng nhập */}
+      <div className="glass-card p-6 rounded-2xl border border-white/5 space-y-4 pt-6 mt-6">
+        <div className="flex items-center gap-2.5 pb-3 border-b border-white/5">
+          <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400">
+            <KeyRound className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="text-base font-bold text-white">Đổi Mật Khẩu Đăng Nhập</h2>
+            <p className="text-xs text-slate-400">
+              Cập nhật mật khẩu mới cho tài khoản admin bạn đang sử dụng.
+            </p>
+          </div>
+        </div>
+
+        <form onSubmit={handleChangePassword} className="space-y-4 max-w-md">
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">
+              Mật khẩu mới
+            </label>
+            <input
+              type="password"
+              required
+              minLength={6}
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Tối thiểu 6 ký tự"
+              className="w-full px-3.5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-amber-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">
+              Xác nhận mật khẩu mới
+            </label>
+            <input
+              type="password"
+              required
+              minLength={6}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Nhập lại mật khẩu mới"
+              className="w-full px-3.5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-amber-500"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={isChangingPassword}
+            className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
+          >
+            {isChangingPassword ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Đang đổi mật khẩu...</span>
+              </>
+            ) : (
+              <>
+                <KeyRound className="w-4 h-4" />
+                <span>Cập nhật mật khẩu mới</span>
+              </>
+            )}
+          </button>
+        </form>
       </div>
     </div>
   )
